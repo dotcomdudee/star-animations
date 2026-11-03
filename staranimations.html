@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>star animations · a.sh</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0d0e10">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #0d0e10;
+    --grid: rgba(255, 255, 255, .035);
+    --grid-major: rgba(255, 255, 255, .075);
+    --ink: #8b9099;
+    --ink-dim: #4f545c;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --pixel: "Silkscreen", monospace;
+    --accent: #4a63ff;
+    --w: 1200px;
+    --h: 400px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--page); }
+  body {
+    min-height: 100vh; color: #d9dce1; font: 14px/1.5 var(--mono); -webkit-font-smoothing: antialiased;
+    background-color: var(--page);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px);
+    background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+    background-position: var(--x0, 0) var(--y0, 0);
+    overflow-x: hidden;
+  }
+  .sheet { width: min(var(--w), 100% - 96px); margin: 0 auto; padding: 32px 0; }
+  .titleblock-top { display: flex; justify-content: space-between; align-items: center; gap: 24px; height: 56px; padding: 0 56px; background: #000; margin-bottom: 16px; font: 11px/1.4 var(--mono); color: var(--ink); letter-spacing: .08em; text-transform: uppercase; }
+  .titleblock-top .mark { display: flex; align-items: center; gap: 12px; color: #c9ccd2; white-space: nowrap; }
+  .titleblock-top img { width: 26px; height: 26px; border-radius: 50%; margin-left: -5px; }
+  .titleblock-top .spec { text-align: right; color: var(--ink-dim); }
+  .titleblock-top .spec b { color: #c9ccd2; font-weight: 400; }
+
+  .strip { display: flex; flex-direction: column; gap: 16px; counter-reset: tile; }
+  .tile {
+    counter-increment: tile; position: relative; width: 100%; height: var(--h); overflow: hidden;
+    display: flex; flex-direction: column; padding: 40px 56px; background: #050506; color: #eceef1;
+  }
+  .tile > .stars { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .8s ease; }
+  .tile.stars-in > .stars { opacity: 1; }
+  .tile > :not(.stars) { position: relative; z-index: 1; }
+  .tag { font: 500 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); }
+  .tag::before { content: counter(tile, decimal-leading-zero) " — "; opacity: .6; }
+  .body { margin: auto 0; max-width: 430px; }
+  .title { font: 400 clamp(26px, 3.334vw, 40px)/1 var(--pixel); letter-spacing: 0; position: relative; left: -.12em; }
+  .desc { margin-top: 18px; font-size: 14px; line-height: 1.65; color: #a3a8b0; max-width: 40ch; text-wrap: pretty; }
+  .foot { display: flex; flex-wrap: wrap; gap: 6px 24px; font: 11px/1.4 var(--mono); letter-spacing: .08em; color: var(--ink-dim); }
+  .foot b { font-weight: 400; color: var(--ink); }
+  /* static stand-in when WebGL is missing or keeps getting lost */
+  .ph { display: none; position: absolute !important; right: 64px; top: 40px; bottom: 40px; width: min(46%, 560px);
+    border: 1px dashed rgba(255,255,255,.12); background: radial-gradient(circle, rgba(255,255,255,.16) 1px, transparent 1.5px) 0 0 / 14px 14px;
+    place-items: center; font: 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); text-align: center; padding: 20px; }
+  .ph span { background: #050506; padding: 6px 10px; }
+  .tile.no-gl .ph { display: grid; }
+  .note { margin-top: 16px; padding: 18px 56px; background: #000; font: 11px/1.7 var(--mono); letter-spacing: .06em; color: var(--ink-dim); }
+  .note b { color: var(--ink); font-weight: 400; }
+
+  @media (max-width: 900px) {
+    .sheet { width: calc(100% - 32px); padding-top: 20px; }
+    .titleblock-top { height: auto; min-height: 52px; padding: 12px 26px; flex-wrap: wrap; gap: 4px 16px; }
+    .titleblock-top .spec { text-align: left; }
+    .tile { height: auto; min-height: 560px; padding: 30px 26px 310px; }
+    .body { margin: 26px 0 0; }
+    .foot { margin-top: 18px; }
+    .ph { left: 26px; right: 26px; top: auto; bottom: 24px; height: 270px; width: auto; }
+    .note { padding: 16px 26px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tile { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+    @keyframes rise { from { opacity: 0; translate: 0 14px; } }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="titleblock-top">
+    <div class="mark"><img src="favicon.png" alt="" width="26" height="26"> a.sh / star animations</div>
+    <span class="spec"><span id="count">0</span> pieces · live gl <b id="live">0</b> / 5</span>
+  </header>
+  <main class="strip" id="strip"></main>
+  <p class="note">gpu star particles · three.js r187 · each tile mounts its own webgl context when it comes within 300px of the viewport and is fully disposed when it leaves (max 5 alive) · <b>window.__stars(n)</b> fast-forwards every mounted tile</p>
+  <noscript><p class="note">These pieces need JavaScript and WebGL.</p></noscript>
+</div>
+
+<script>
+// The catalogue: key, title, one-line description, shape function, what moves. The module script below maps key -> scene.
+const PIECES = [
+  ['cpu', 'hardware', 'cpu die', 'a QFP package with its copper fanning out to vias; small data pulses run outwards along the traces', 'cpuShape', 'pulses along traces'],
+  ['esp32', 'hardware', 'esp32 board', 'a dev board with header pins, the shielded module and its meander antenna, a status LED and wifi rings', 'esp32Shape', 'led + wifi rings'],
+  ['ram', 'hardware', 'ram stick', 'a DIMM with eight packages and gold fingers; a slow read sweep passes along the chips', 'ramShape', 'read sweep'],
+  ['breadboard', 'hardware', 'breadboard', 'a half-size breadboard with a DIP chip, jumper wires and four LEDs lighting in turn', 'breadboardShape', 'led chaser'],
+  ['rack', 'hardware', 'server rack', 'two racks of switches, servers and storage, each status light blinking on its own slow clock', 'rackShape', 'status leds'],
+  ['hdd', 'hardware', 'hard drive', 'an open drive: the platter spins, the actuator arm seeks between tracks', 'hddShape', 'platter + arm, 2 parts'],
+  ['floppy', 'hardware', 'floppy disk', 'a 3.5 inch disk with shutter and label; the magnetic surface turns behind the slot', 'floppyShape', 'sway + disk'],
+  ['cassette', 'hardware', 'cassette', 'a C90 tape with both reels turning at their own speeds as the tape winds across', 'cassetteShape', '2 reels + tape'],
+  ['keys', 'hardware', 'key cluster', 'eighteen keycaps in perspective; a, s and h press down in turn', 'keysShape', 'key presses'],
+  ['scope', 'signals', 'oscilloscope', 'a graticule and an x–y lissajous figure drawn by a beam, its phase slowly drifting', 'scopeShape', 'beam + phase drift'],
+  ['spectrum', 'signals', 'spectrum analyser', 'twenty-four segmented bars dancing to a made-up signal, with peak-hold caps and a blue top zone', 'spectrumShape', 'bars + peaks'],
+  ['radar', 'signals', 'radar sweep', 'a ppi scope with range rings, bearing ticks and contacts that glow as the sweep passes', 'radarShape', 'sweep + afterglow'],
+  ['dish', 'signals', 'satellite dish', 'a parabolic dish on a pedestal, feed on three struts, wavefronts leaving along its axis', 'dishShape', 'sway + wavefronts'],
+  ['mast', 'signals', 'radio mast', 'a lattice tower with sector antennas and a beacon, signal rings spreading out from the top', 'mastShape', 'turn + rings'],
+  ['wave', 'signals', 'wave field', 'two point sources interfering on a surface; crests catch the light', 'waveShape', 'interference'],
+  ['terminal', 'data', 'terminal', 'a shell session set in particles, with a blinking block cursor', 'terminalShape', 'cursor blink'],
+  ['qr', 'data', 'qr scan', 'a qr-style module grid with finder patterns and a scan line sweeping over it', 'qrShape', 'scan line'],
+  ['rain', 'data', 'binary rain', 'columns of pixel 0s and 1s drifting down at different depths and speeds', 'rainShape', 'falling columns'],
+  ['network', 'data', 'network graph', 'nodes and links in 3D with packets travelling along the edges', 'networkShape', 'turn + packets'],
+  ['globe', 'data', 'globe', 'a dotted earth with a graticule, great-circle routes carrying packets and an orbiting satellite', 'globeShape', 'spin + packets + orbit'],
+  ['atom', 'science', 'atom', 'a nucleus and three tilted orbits, each electron trailing a fading comet tail', 'atomShape', '4 parts, own axes'],
+  ['dna', 'science', 'dna helix', 'a double helix with major and minor grooves and base-pair rungs, turning on its axis', 'dnaShape', 'axial turn'],
+  ['knot', 'science', 'torus knot', 'a (3,7) torus knot as a particle tube, two highlights travelling around it', 'knotShape', 'turn + highlights'],
+  ['constellation', 'space', 'star chart', 'ursa major on a ra/dec grid, the plough in bright stars, a reticle on mizar and alcor', 'constellationShape', 'twinkle + reticle'],
+  ['galaxy', 'space', 'galaxy', 'a two-armed spiral with a bright bulge and young blue clusters, inclined and slowly turning', 'galaxyShape', 'rotation'],
+  ['blackhole', 'space', 'black hole', 'an accretion disk around a shadow, its far side lensed into a halo, a thin photon ring', 'blackholeShape', 'disk + halo'],
+  ['planet', 'space', 'ringed planet', 'a lit planet with banded clouds, ringlets and the cassini gap, and a small moon', 'planetShape', 'spin + rings + moon'],
+  ['gears', 'mechanical', 'gear train', 'three meshing spur gears, 24, 12 and 18 teeth, turning at the right ratios', 'gearShape', '3 parts, own centres'],
+  ['lighthouse', 'mechanical', 'lighthouse', 'a striped tower over a moving sea, its twin beam sweeping round', 'lighthouseShape', 'beam + sea'],
+  ['topo', 'terrain', 'contour map', 'stacked contour lines of a ridge with a summit marker and a dotted route to the top', 'topoShape', 'slow yaw + route'],
+  ['plane', 'terrain', 'flight path', 'a paper plane at the end of a looping dotted flight path', 'planeShape', 'bob + dash flow'],
+];
+document.getElementById('count').textContent = PIECES.length;
+document.getElementById('strip').innerHTML = PIECES.map(([k, cat, t, d, fn, m]) =>
+  `<section class="tile" data-k="${k}" aria-label="${t}">
+    <p class="tag">${cat}</p>
+    <div class="body"><h2 class="title">${t}</h2><p class="desc">${d}</p></div>
+    <p class="foot"><span>fn <b>${fn}</b></span><span>${m}</span></p>
+    <div class="ph" aria-hidden="true"><span>${t} · static preview<br>webgl unavailable</span></div>
+  </section>`).join('');
+// the background grid is zeroed on the first tile's top-left corner
+(() => {
+  const first = document.querySelector('.tile');
+  const measure = () => { const r = first.getBoundingClientRect(); document.body.style.setProperty('--x0', (r.left + scrollX) + 'px'); document.body.style.setProperty('--y0', (r.top + scrollY) + 'px'); };
+  measure(); addEventListener('resize', measure); document.fonts && document.fonts.ready.then(measure);
+})();
+</script>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* LIFTING A PIECE INTO claude83.html
+   1. Engine: in claude83's module script, replace everything from "const RM" down to the end of mountStars() with this file's
+      STAR ENGINE block (const RM ... end of mountStars), but keep claude83's own shape functions (mountainShape, vinylShape, chipShape)
+      by pasting them back after it. The engine is a drop-in superset, so claude83's existing mounts keep working unchanged.
+   2. Copy the SHAPE HELPERS block, then the piece's shape function and any constant it uses (HDD, CAS, SPEC, DISH, NET, LAND/CITIES/ROUTES,
+      ATOM, UMA, PLANET, GEARS, LH, PATH, GLYPH ...). They sit right above each function.
+   3. Mount it with the piece's SCENES entry plus a place() for that panel, e.g.
+        const s = SCENES.hdd;
+        mountStars(document.querySelector('.p-xyz'), { ...s, uniforms: s.uniforms && s.uniforms(), size: SMALL ? 128 : 176, dust: .07, accent: '#4a63ff',
+          place: (W, H, mob, sh) => { const ppu = Math.min(560 / sh.w, (H - 64) / sh.h); return { ppu, cx: W - 70 - sh.w * ppu / 2, cy: H / 2 }; } });
+      (fit is only used by this gallery's place(); the shape's w/h come back as sh.w / sh.h.)
+*/
+/* =====================================================================================================
+   STAR ENGINE — claude83's mountStars(), generalised. Everything claude83 does still works the same
+   (code 0 static, code 1 spun + tilted via opts.spin / opts.tilt, code 5 dust). New, all optional:
+     opts.view     [['x', a], ['y', b], ['z', c], ...]  rotations applied in order to the whole shape (radians)
+     opts.groups   [{ c: [x,y,z], a: [x,y,z], s: rad/s }, ...]  up to 8 rigid parts: code 10 + i turns about
+                   its own centre c and axis a at speed s
+     opts.motion   GLSL: vec3 motion(vec3 p, float c, float t, inout float b, inout float a)
+                   per-particle hook in local units: p = rest position (after its group turn), c = code,
+                   t = scene seconds (frozen under reduced motion), b = brightness multiplier, a = accent 0..1.
+                   Codes 2-4, 6-9 and 18+ are free for the hook to interpret (ids, params, ...).
+     opts.uniforms extra uniforms for the hook (declare them inside the motion string)
+     opts.t0       scene time to start from (and to freeze at under reduced motion)
+     opts.mobile() true for the stacked phone layout (default: panel narrower than 700px)
+   The sim still springs every particle to its rest position (assembly with sparkles, then calm); the hook's
+   offset is added at draw time, so continuous motion never lags or sparkles.
+   Returns a handle { dispose(), step(n) } (or null when WebGL is unavailable).
+   ===================================================================================================== */
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const IFR = window.self !== window.top;
+const SMALL = IFR || Math.min(innerWidth, innerHeight) < 600;
+const CAMZ = 12, FOV = 30;
+const hooks = [];
+window.__stars = (n = 60) => hooks.forEach((f) => f(n));   // test hook: fast-forward every mounted scene
+const GL = { live: 0, max: 0, changed() { const el = document.getElementById('live'); if (el) el.textContent = this.live; } };
+const HAS_GL = (() => { try { const c = document.createElement('canvas'), g = c.getContext('webgl2'); if (!g) return false;
+  const ok = !!g.getExtension('EXT_color_buffer_float') && g.getParameter(g.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0;
+  const lc = g.getExtension('WEBGL_lose_context'); lc && lc.loseContext(); return ok; } catch (e) { return false; } })();
+
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = (r) => { let u = 0, v = 0; while (u === 0) u = r(); v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2831853 * v); };
+const enc = (code, br, acc) => code + Math.min(.98, Math.max(0, br)) * .49 + (acc ? .5 : 0);
+
+const VEL = /* glsl */`
+uniform float uDt, uTime, uSpring, uDamp, uNoise, uFlow, uSpin; uniform mat3 uTilt; uniform sampler2D tT;
+float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+vec3 pot(vec3 p){ float t = uTime * .13;
+  return vec3(sin(p.y * 1.1 + t) + .6 * sin(p.z * 1.9 - t * 1.3 + p.x * .7), sin(p.z * 1.3 - t * .9) + .6 * sin(p.x * 2.1 + t * .7 + p.y * .6), sin(p.x * 1.2 + t * 1.1) + .6 * sin(p.y * 1.7 - t + p.z * .5)); }
+vec3 curl(vec3 p){ const float e = .09; vec3 dx = vec3(e, 0., 0.), dy = vec3(0., e, 0.), dz = vec3(0., 0., e);
+  vec3 x0 = pot(p - dx), x1 = pot(p + dx), y0 = pot(p - dy), y1 = pot(p + dy), z0 = pot(p - dz), z1 = pot(p + dz);
+  return vec3((y1.z - y0.z) - (z1.y - z0.y), (z1.x - z0.x) - (x1.z - x0.z), (x1.y - x0.y) - (y1.x - y0.x)) / (2. * e); }
+void main(){
+  vec2 uv = gl_FragCoord.xy / resolution.xy;
+  vec4 P = texture2D(texturePosition, uv), V = texture2D(textureVelocity, uv), t = texture2D(tT, uv);
+  vec3 tgt = t.xyz; float code = floor(t.w), k = uSpring;
+  if (code > .5 && code < 1.5) { float c = cos(uSpin), s = sin(uSpin); tgt = uTilt * vec3(c * tgt.x - s * tgt.y, s * tgt.x + c * tgt.y, tgt.z); k *= 4.; }   // spinning disc
+  else if (code > 4.5 && code < 5.5) tgt += vec3(sin(uTime * .05 + t.y), cos(uTime * .04 + t.x), 0.) * .25;   // dust drifts slowly
+  vec3 d = tgt - P.xyz; float h = hash12(uv * 733.1);
+  vec3 acc = d * k * (.7 + .6 * h); float am = length(acc); if (am > 34.) acc *= 34. / am;
+  acc += curl(P.xyz * .5) * (uNoise + smoothstep(.06, 1.4, length(d)) * uFlow);   // swirl only while travelling
+  V.xyz += acc * uDt; V.xyz *= exp(-uDamp * uDt);
+  gl_FragColor = V;
+}`;
+const POS = /* glsl */`uniform float uDt;
+void main(){ vec2 uv = gl_FragCoord.xy / resolution.xy; vec4 P = texture2D(texturePosition, uv); vec4 V = texture2D(textureVelocity, uv); P.xyz += V.xyz * uDt; gl_FragColor = P; }`;
+
+const DEFAULT_MOTION = 'vec3 motion(vec3 p, float c, float t, inout float b, inout float a){ return p; }';
+const vertexShader = (motion) => /* glsl */`
+uniform sampler2D tPos, tVel, tT; uniform float uSize, uAlpha, uT, uSc; uniform vec3 uAcc; uniform mat3 uView;
+uniform vec3 uGC[8]; uniform vec4 uGA[8];
+attribute vec2 ref; attribute float rnd; varying vec3 vCol; varying float vA;
+#define PI 3.14159265
+#define TAU 6.28318531
+float hash11(float n){ return fract(sin(n * 127.1 + 31.7) * 43758.5453); }
+vec3 rotA(vec3 p, vec3 a, float g){ float c = cos(g), s = sin(g); return p * c + cross(a, p) * s + a * dot(a, p) * (1. - c); }
+vec3 rotX(vec3 p, float g){ float c = cos(g), s = sin(g); return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z); }
+vec3 rotY(vec3 p, float g){ float c = cos(g), s = sin(g); return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
+vec3 rotZ(vec3 p, float g){ float c = cos(g), s = sin(g); return vec3(c * p.x - s * p.y, s * p.x + c * p.y, p.z); }
+float bump(float x, float w){ return exp(-x * x / (w * w)); }
+vec3 grp(vec3 p, float c, float t){ if (c > 9.5 && c < 17.5) { int k = int(c - 9.5); vec3 o = uGC[k]; vec4 a = uGA[k]; return o + rotA(p - o, a.xyz, t * a.w); } return p; }
+${motion || DEFAULT_MOTION}
+void main(){
+  vec3 p = texture2D(tPos, ref).xyz, v = texture2D(tVel, ref).xyz; vec4 t = texture2D(tT, ref);
+  float code = floor(t.w), f = fract(t.w), ac = step(.5, f), br = clamp((f - ac * .5) / .49, 0., 1.), bm = 1.;
+  bool dust = code > 4.5 && code < 5.5;
+  if (!dust && abs(code - 1.) > .5) { vec3 L = t.xyz / uSc; vec3 M = uView * motion(grp(L, code, uT), code, uT, bm, ac); p += M * uSc - t.xyz; }
+  vec4 mv = modelViewMatrix * vec4(p, 1.); gl_Position = projectionMatrix * mv;
+  bm = clamp(bm, 0., 3.); ac = clamp(ac, 0., 1.);
+  float fast = smoothstep(1.2, 3.6, length(v)) * smoothstep(.55, .75, rnd), hot = clamp(fast + ac * .85, 0., 1.);
+  gl_PointSize = max(1., uSize * (.55 + .95 * rnd * rnd) * (.7 + .5 * br) * (1. + hot * .35) * (.8 + .2 * min(bm, 2.)) * (12. / -mv.z));
+  vCol = mix(mix(vec3(.62, .62, .62), vec3(1.), br) * (.3 + .7 * br), vec3(1.25), fast);   // monochrome; fast-moving sparkles go white
+  vCol = mix(vCol, uAcc * 1.6, ac * .85);                                                       // accent stars take the scene's accent colour
+  vA = uAlpha * (.1 + .36 * br * br) * (dust ? .9 : 1.) * smoothstep(1.2, 4.5, -mv.z) * (1. + hot * .6) * bm;
+  if (vA < .002) gl_Position = vec4(0., 0., 2., 1.);   // switched off by the hook: clip it
+}`;
+const fragmentShader = /* glsl */`varying vec3 vCol; varying float vA;
+void main(){ vec2 c = gl_PointCoord - .5; float a = exp(-dot(c, c) * 12.8) - .04; if (a <= 0.) discard; gl_FragColor = vec4(vCol, a * vA); }`;
+
+function viewMatrix(list) {
+  const m = new THREE.Matrix4(), r = new THREE.Matrix4();
+  for (const [ax, a] of list || []) { if (ax === 'x') r.makeRotationX(a); else if (ax === 'y') r.makeRotationY(a); else r.makeRotationZ(a); m.premultiply(r); }
+  return new THREE.Matrix3().setFromMatrix4(m);
+}
+
+// opts: size (sim texture side), shape(n) -> Float32Array | {pts, w, h}, place(W, H, mob, sh) -> { ppu (px per local unit), cx, cy },
+//       bright (alpha multiplier), dust (share of particles), accent, screen, tilt/spin (code 1), view, groups, motion, uniforms, t0,
+//       onFail(), onLost()
+async function mountStars(panel, opts) {
+  if (!panel) return null;
+  const fail0 = () => { panel.classList.remove('has-stars', 'stars-in'); opts.onFail && opts.onFail(); };
+  if (!HAS_GL) { fail0(); return null; }
+  const SIZE = opts.size || 160, N = SIZE * SIZE, NDUST = Math.floor(N * (opts.dust ?? .08)), NS = N - NDUST;
+  const sh = await opts.shape(NS), local = sh.pts || sh;
+  const canvas = document.createElement('canvas'); canvas.className = 'stars'; canvas.setAttribute('aria-hidden', 'true'); panel.prepend(canvas);
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' }); }
+  catch (e) { canvas.remove(); fail0(); return null; }
+  GL.live++; GL.max = Math.max(GL.max, GL.live); GL.changed();
+  let dead = false, raf = 0, timer = 0, io = null, ro = null, gpu = null, geo = null, mat = null, composer = null, bloom = null, outPass = null, tTex = null, hook = null;
+  function kill(lost) {
+    if (dead) return; dead = true;
+    cancelAnimationFrame(raf); clearTimeout(timer); io && io.disconnect(); ro && ro.disconnect();
+    canvas.removeEventListener('webglcontextlost', onLost);
+    const i = hooks.indexOf(hook); if (i >= 0) hooks.splice(i, 1);
+    for (const o of [gpu, geo, mat, tTex, bloom, outPass, composer]) { try { o && o.dispose(); } catch (e) {} }
+    try { renderer.dispose(); if (!lost) renderer.forceContextLoss(); } catch (e) {}
+    canvas.remove(); panel.classList.remove('stars-in', 'has-stars');
+    GL.live--; GL.changed();
+  }
+  function onLost(e) { e.preventDefault(); kill(true); opts.onLost ? opts.onLost() : fail0(); }
+  canvas.addEventListener('webglcontextlost', onLost);
+  if (renderer.capabilities.maxVertexTextures === 0 || !renderer.extensions.has('EXT_color_buffer_float')) { kill(); fail0(); return null; }
+  const DPR = IFR ? 1 : Math.min(devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(DPR); renderer.setClearColor(new THREE.Color(opts.screen ? '#000' : (getComputedStyle(panel).backgroundColor || '#000')), 1);
+  if (opts.screen) canvas.style.mixBlendMode = 'screen';
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(FOV, 3, .1, 100); camera.position.set(0, 0, CAMZ);
+
+  // The camera looks straight at the shape (seen head-on); an off-centre projection (setViewOffset) moves it to its spot in the panel.
+  const target = new Float32Array(N * 4); tTex = new THREE.DataTexture(target, SIZE, SIZE, THREE.RGBAFormat, THREE.FloatType);
+  let W = 1, H = 1, sc = 1, dirty = true;
+  function layout() {
+    W = panel.clientWidth; H = panel.clientHeight;
+    const mob = opts.mobile ? opts.mobile() : W < 700, pl = opts.place(W, H, mob, sh);
+    const fullW = 2 * Math.max(pl.cx, W - pl.cx), fullH = 2 * Math.max(pl.cy, H - pl.cy);
+    camera.aspect = fullW / fullH; camera.setViewOffset(fullW, fullH, fullW / 2 - pl.cx, fullH / 2 - pl.cy, W, H); camera.updateProjectionMatrix();
+    const upp = 2 * CAMZ * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) / fullH; sc = pl.ppu * upp;
+    for (let i = 0; i < NS; i++) { target[i * 4] = local[i * 4] * sc; target[i * 4 + 1] = local[i * 4 + 1] * sc; target[i * 4 + 2] = local[i * 4 + 2] * sc; target[i * 4 + 3] = local[i * 4 + 3]; }
+    const r = rng(7);
+    for (let i = NS; i < N; i++) { const z = -6 + r() * 7, k = (CAMZ - z) / CAMZ; target[i * 4] = (r() * W - pl.cx) * upp * k; target[i * 4 + 1] = (pl.cy - r() * H) * upp * k; target[i * 4 + 2] = z; target[i * 4 + 3] = enc(5, .12 + r() * r() * .55, r() < .05); }
+    tTex.needsUpdate = true;
+    renderer.setSize(W, H, false);
+    if (composer) { composer.setPixelRatio(DPR); composer.setSize(W, H); bloom.resolution.set(W * DPR / 2, H * DPR / 2); }
+    if (mat) { const u = mat.uniforms; u.uSc.value = sc; u.uSize.value = (mob ? 1.2 : 1.45) * DPR * (SIZE >= 192 ? 1 : 1.25); u.uAlpha.value = Math.min(1.3, Math.max(.35, (opts.bright ?? .8) * Math.pow(pl.ppu / 172, 1.2))); }
+    dirty = true;
+  }
+  gpu = new GPUComputationRenderer(SIZE, SIZE, renderer);
+  layout();
+  const p0 = gpu.createTexture(), v0 = gpu.createTexture(), pd = p0.image.data, r0 = rng(3);
+  for (let i = 0; i < N; i++) {           // start scattered: the shape assembles with sparkles, then holds still
+    const sp = RM || i >= NS ? 0 : 1.6;
+    pd[i * 4] = target[i * 4] + gauss(r0) * sp * .6; pd[i * 4 + 1] = target[i * 4 + 1] + gauss(r0) * sp * .6; pd[i * 4 + 2] = target[i * 4 + 2] + gauss(r0) * sp; pd[i * 4 + 3] = 1;
+  }
+  const velVar = gpu.addVariable('textureVelocity', VEL, v0), posVar = gpu.addVariable('texturePosition', POS, p0);
+  gpu.setVariableDependencies(velVar, [posVar, velVar]); gpu.setVariableDependencies(posVar, [posVar, velVar]);
+  const vu = velVar.material.uniforms;
+  Object.assign(vu, { uDt: { value: 0 }, uTime: { value: 0 }, uSpin: { value: 0 }, uTilt: { value: opts.tilt || new THREE.Matrix3() }, tT: { value: tTex }, uSpring: { value: 21 }, uDamp: { value: 5.2 }, uNoise: { value: RM ? 0 : .06 }, uFlow: { value: RM ? 0 : 7.5 } });
+  posVar.material.uniforms.uDt = vu.uDt;
+  const err = gpu.init(); if (err) { console.warn(err); kill(); fail0(); return null; }
+
+  geo = new THREE.BufferGeometry(); const ref = new Float32Array(N * 2), rnd = new Float32Array(N), rr = rng(9);
+  for (let i = 0; i < N; i++) { ref[i * 2] = (i % SIZE + .5) / SIZE; ref[i * 2 + 1] = (Math.floor(i / SIZE) + .5) / SIZE; rnd[i] = rr(); }
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+  geo.setAttribute('ref', new THREE.BufferAttribute(ref, 2)); geo.setAttribute('rnd', new THREE.BufferAttribute(rnd, 1));
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
+  const GC = [], GA = [];
+  for (let i = 0; i < 8; i++) { const g = (opts.groups || [])[i]; const c = g ? g.c : [0, 0, 0], a = new THREE.Vector3(...(g ? g.a : [0, 0, 1])).normalize(); GC.push(new THREE.Vector3(...c)); GA.push(new THREE.Vector4(a.x, a.y, a.z, g ? g.s : 0)); }
+  mat = new THREE.ShaderMaterial({
+    uniforms: { tPos: { value: null }, tVel: { value: null }, tT: { value: tTex }, uSize: { value: 1 }, uAlpha: { value: 1 }, uAcc: { value: new THREE.Color(opts.accent || '#c8c8c8') },
+      uT: { value: opts.t0 || 0 }, uSc: { value: sc }, uView: { value: viewMatrix(opts.view) }, uGC: { value: GC }, uGA: { value: GA }, ...(opts.uniforms || {}) },
+    vertexShader: vertexShader(opts.motion), fragmentShader,
+    transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+  });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts);
+  composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
+  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .5, .32, .42); composer.addPass(bloom); outPass = new OutputPass(); composer.addPass(outPass);
+  layout();
+  ro = new ResizeObserver(() => { if (panel.clientWidth !== W || panel.clientHeight !== H) layout(); }); ro.observe(panel);
+
+  let visible = false, last = performance.now(), simT = 0, frames = 0;
+  io = new IntersectionObserver((e) => { visible = e[e.length - 1].isIntersecting; }); io.observe(panel);
+  function step(dt) { simT += dt; vu.uTime.value = RM ? 0 : simT; vu.uDt.value = dt; if (opts.spin) vu.uSpin.value = opts.spin(dt); mat.uniforms.uT.value = (opts.t0 || 0) + (RM ? 0 : simT); gpu.compute(); }
+  function draw() {
+    mat.uniforms.tPos.value = gpu.getCurrentRenderTarget(posVar).texture; mat.uniforms.tVel.value = gpu.getCurrentRenderTarget(velVar).texture;
+    composer.render(); dirty = false;
+    if (++frames === 2) { panel.classList.add('stars-in'); timer = setTimeout(() => panel.classList.add('has-stars'), 850); }
+  }
+  hook = (n) => { if (dead) return; for (let i = 0; i < n; i++) step(1 / 30); draw(); };
+  hooks.push(hook);
+  function frame(now) {
+    raf = requestAnimationFrame(frame);
+    if (document.hidden || !visible) { last = now; return; }
+    const dt = Math.min(1 / 30, Math.max(0, (now - last) / 1000)); last = now;
+    if (RM && frames > 3 && !dirty) return;   // reduced motion: formed at once, then a still image
+    step(dt); draw();
+  }
+  raf = requestAnimationFrame((t) => { last = t; frame(t); });
+  return { dispose: () => kill(false), step: hook, get alive() { return !dead; } };
+}
+
+/* =====================================================================================================
+   SHAPE HELPERS (local units, roughly ±2; z towards the camera)
+   ===================================================================================================== */
+const TAU = Math.PI * 2;
+const rx = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]; };
+const ry = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; };
+const rz = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2] || 0]; };
+const mixp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, (a[2] || 0) + ((b[2] || 0) - (a[2] || 0)) * t];
+const nrm = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const J = (r, s) => gauss(r) * s;
+const onSphere = (r) => nrm([gauss(r), gauss(r), gauss(r)]);
+function basis(n) { const t = Math.abs(n[0]) < .9 ? [1, 0, 0] : [0, 1, 0]; const u = nrm(cross(n, t)); return [u, cross(n, u)]; }
+// polyline sampler: f(u in 0..1) -> point at that fraction of the length; f.len
+function poly(pts, closed = false) {
+  const P = pts.map((p) => [p[0], p[1], p[2] || 0]); if (closed) P.push(P[0]);
+  const cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]));
+  const L = cum[cum.length - 1] || 1e-9;
+  const f = (u) => { const d = Math.min(Math.max(u, 0), 1) * L; let lo = 0, hi = P.length - 2; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (cum[m] <= d) lo = m; else hi = m - 1; } const s = (cum[lo + 1] - cum[lo]) || 1; return mixp(P[lo], P[lo + 1], (d - cum[lo]) / s); };
+  f.len = L; return f;
+}
+// several polylines, picked by length: (r) -> [point, index, u]
+function polys(list) { const tot = list.reduce((a, f) => a + f.len, 0); return (r) => { let q = r() * tot; for (let i = 0; i < list.length; i++) { const f = list[i]; if (q <= f.len || i === list.length - 1) { const u = Math.min(1, q / f.len); return [f(u), i, u]; } q -= f.len; } }; }
+const arcPts = (cx, cy, R, a0 = 0, a1 = TAU, n = 72) => Array.from({ length: n + 1 }, (_, i) => { const a = a0 + (a1 - a0) * i / n; return [cx + Math.cos(a) * R, cy + Math.sin(a) * R]; });
+const rectPts = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]];
+function rrectPts(x0, y0, x1, y1, rad, n = 6) { const out = [], q = Math.PI / 2; for (const [cx, cy, a] of [[x1 - rad, y1 - rad, 0], [x0 + rad, y1 - rad, q], [x0 + rad, y0 + rad, 2 * q], [x1 - rad, y0 + rad, 3 * q]]) for (let i = 0; i <= n; i++) out.push([cx + Math.cos(a + i / n * q) * rad, cy + Math.sin(a + i / n * q) * rad]); out.push(out[0]); return out; }
+const zAt = (pts, z) => pts.map((p) => [p[0], p[1], z]);
+// a shape from weighted parts; each part (r) -> [x, y, z, code, brightness, accent]
+function build(n, seed, parts, w, h) {
+  const r = rng(seed), out = new Float32Array(n * 4), tot = parts.reduce((a, p) => a + p[0], 0), cdf = []; let a = 0;
+  for (const p of parts) { a += p[0] / tot; cdf.push(a); }
+  for (let i = 0; i < n; i++) { const q = r(); let k = 0; while (k < cdf.length - 1 && q > cdf[k]) k++; const v = parts[k][1](r); out[i * 4] = v[0]; out[i * 4 + 1] = v[1]; out[i * 4 + 2] = v[2]; out[i * 4 + 3] = enc(v[3], v[4], v[5]); }
+  return { pts: out, w, h };
+}
+// draw with canvas 2D (helpers X/Y map local units to pixels), then sample lit pixels weighted by red: (r) -> [x, y, R, G, B]
+function ink(W, H, ppu, draw) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d', { willReadFrequently: true });
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H); draw(g, (x) => W / 2 + x * ppu, (y) => H / 2 - y * ppu, ppu);
+  const d = g.getImageData(0, 0, W, H).data, idx = [], cdf = []; let acc = 0;
+  for (let i = 0; i < W * H; i++) { const v = d[i * 4] / 255; if (v > .12) { acc += v; idx.push(i); cdf.push(acc); } }
+  if (!idx.length) return () => [0, 0, 0, 0, 0];
+  return (r) => { const q = r() * acc; let lo = 0, hi = cdf.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < q) lo = m + 1; else hi = m; } const i = idx[lo];
+    return [((i % W) + r() - W / 2) / ppu, (H / 2 - Math.floor(i / W) - r()) / ppu, d[i * 4] / 255, d[i * 4 + 1] / 255, d[i * 4 + 2] / 255]; };
+}
+async function fontsOK(...specs) { try { await Promise.all(specs.map((s) => document.fonts.load(s))); } catch (e) {} }
+const F = (x) => Number(x).toFixed(4);   // numbers for GLSL templates
+const MONO = '"JetBrains Mono", ui-monospace, monospace', PIX = '"Silkscreen", monospace';
+
+// ---------- 01 cpu die: package, die, 48 pins, traces fanning out to vias (trace code 20 + id carries its arc length in z) ----------
+function cpuShape(n) {
+  const r0 = rng(77), traces = [], ends = [], Q = Math.PI / 2;
+  for (let side = 0; side < 4; side++) for (let j = 0; j < 12; j++) {
+    if (r0() < .18) continue;
+    const a = -.44 + j * .08, hz = side % 2 === 0, fan = hz ? 2.45 : 1.85, reach = hz ? 2.2 : 1.28;
+    const x1 = .68 + r0() * .1, af = a * fan, x2 = x1 + Math.abs(af - a), xe = Math.max(x2 + .1, reach - (r0() < .35 ? r0() * .55 : 0));
+    const pts = [[.6, a], [x1, a], [x2, af], [xe, af]].map((p) => rz([p[0], p[1], 0], side * Q));
+    traces.push(poly(pts)); ends.push(pts[3]);
+  }
+  const T = polys(traces), pkg = poly(rrectPts(-.5, -.5, .5, .5, .035)), die = poly(rectPts(-.25, -.25, .25, .25));
+  const cores = polys([[-.215, .015], [.015, .015], [-.215, -.215], [.015, -.215]].map(([x, y]) => poly(rectPts(x, y, x + .2, y + .2))));
+  const caps = polys([[.78, .78], [-.78, .78], [-.78, -.78], [.78, -.78], [.9, .66], [-.66, .9]].map(([x, y]) => poly(rectPts(x - .05, y - .025, x + .05, y + .025))));
+  return build(n, 11, [
+    [.47, (r) => { const [p, i, u] = T(r); return [p[0] + J(r, .004), p[1] + J(r, .004), u * traces[i].len, 20 + i, .55, false]; }],
+    [.07, (r) => { const e = ends[Math.floor(r() * ends.length)], th = r() * TAU, q = .03 + J(r, .003); return [e[0] + Math.cos(th) * q, e[1] + Math.sin(th) * q, 0, 0, .85, false]; }],
+    [.08, (r) => { const p = pkg(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), .06, 0, .82, false]; }],
+    [.06, (r) => [(r() - .5) * .96, (r() - .5) * .96, .06, 0, .14, false]],
+    [.05, (r) => { const p = die(r()); return [p[0], p[1], .075, 0, .95, false]; }],
+    [.05, (r) => { const [p] = cores(r); return [p[0], p[1], .075, 0, .7, false]; }],
+    [.04, (r) => [-.21 + Math.floor(r() * 8) * .06 + J(r, .003), -.21 + Math.floor(r() * 8) * .06 + J(r, .003), .075, 0, .45, false]],
+    [.08, (r) => { const side = Math.floor(r() * 4), a = -.44 + Math.floor(r() * 12) * .08; const p = rz([.5 + r() * .1, a + J(r, .006), 0], side * Q); return [p[0], p[1], .02, 0, .75, false]; }],
+    [.006, (r) => { const th = r() * TAU, q = Math.sqrt(r()) * .035; return [-.39 + Math.cos(th) * q, .39 + Math.sin(th) * q, .065, 0, .9, true]; }],
+    [.03, (r) => { const [p] = caps(r); return [p[0], p[1], .02, 0, .5, false]; }],
+  ], 4.6, 2.35);
+}
+// ---------- 02 esp32 dev board (codes: 3 status led, 4 wifi rings with angle in x, ring index in y) ----------
+function esp32Shape(n) {
+  const pads = [], headers = [];
+  for (const y of [.64, -.64]) { headers.push(poly(rectPts(-1.28, y - .075, 1.29, y + .075))); for (let k = 0; k < 19; k++) pads.push([-1.2 + k * .134, y]); }
+  const board = poly(rrectPts(-1.45, -.74, 1.45, .74, .06)), can = poly(rrectPts(-.05, -.44, 1.0, .44, .03)), mod = poly(rectPts(-.12, -.47, 1.45, .47));
+  const mx = [1.08, 1.16, 1.24, 1.32, 1.4], mz = [[1.08, -.4]]; mx.forEach((x, i) => { mz.push([x, i % 2 ? -.38 : .38]); if (i < 4) mz.push([mx[i + 1], i % 2 ? -.38 : .38]); });
+  const ant = poly(mz), usb = [[-1.57, -.17], [-1.3, -.17], [-1.3, .17], [-1.57, .17]];
+  const usbE = polys([poly(zAt(rectPts(-1.57, -.17, -1.3, .17), 0)), poly(zAt(rectPts(-1.57, -.17, -1.3, .17), .13)), ...usb.map((p) => poly([[p[0], p[1], 0], [p[0], p[1], .13]]))]);
+  const chips = polys([poly(rectPts(-.86, -.33, -.58, -.05)), poly(rectPts(-.88, .2, -.56, .38)), poly(rectPts(-.8, .38, -.64, .44)), poly(rectPts(-1.25, .36, -1.11, .5)), poly(rectPts(-1.25, -.5, -1.11, -.36))]);
+  const smd = Array.from({ length: 12 }, (_, i) => [-1.0 + (i % 4) * .13, -.05 + Math.floor(i / 4) * .1 - .1]);
+  return build(n, 12, [
+    [.08, (r) => { const p = board(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .62, false]; }],
+    [.05, (r) => [(r() - .5) * 2.88, (r() - .5) * 1.46, 0, 0, .1, false]],
+    [.12, (r) => { const c = pads[Math.floor(r() * pads.length)], q = r(); if (q < .35) return [c[0] + J(r, .01), c[1] + J(r, .01), .03, 0, .9, false];
+      const s = Math.floor(r() * 4), u = r() - .5, h = .042; return [c[0] + (s < 2 ? u * 2 * h : (s === 2 ? h : -h)), c[1] + (s < 2 ? (s ? h : -h) : u * 2 * h), .02, 0, .55, false]; }],
+    [.04, (r) => { const [p] = polys(headers)(r); return [p[0], p[1], .015, 0, .3, false]; }],
+    [.1, (r) => { const p = can(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), .07, 0, .85, false]; }],
+    [.05, (r) => [-.02 + r() * .99, -.41 + r() * .82, .07, 0, .16, false]],
+    [.04, (r) => { const p = mod(r()); return [p[0], p[1], .02, 0, .45, false]; }],
+    [.08, (r) => { const p = ant(r()); return [p[0] + J(r, .004), p[1] + J(r, .004), .02, 0, .85, false]; }],
+    [.05, (r) => { const [p] = usbE(r); return [p[0], p[1], p[2], 0, .75, false]; }],
+    [.07, (r) => { const [p] = chips(r); return [p[0] + J(r, .002), p[1] + J(r, .002), .03, 0, .7, false]; }],
+    [.02, (r) => { const c = smd[Math.floor(r() * smd.length)]; return [c[0] + (r() - .5) * .06, c[1] + (r() - .5) * .03, .02, 0, .5, false]; }],
+    [.01, (r) => [-1.0 + J(r, .012), .1 + J(r, .008), .03, 0, .9, true]],
+    [.01, (r) => [-1.0 + J(r, .012), -.1 + J(r, .008), .03, 3, .9, true]],
+    [.12, (r) => [(r() - .5) * 1.5, Math.floor(r() * 3), J(r, .008), 4, .7, r() < .12]],
+  ], 4.1, 1.9);
+}
+// ---------- 03 ram stick: DIMM outline with key notch, gold fingers (code 3), eight packages (code 2 outline, 6 fill) ----------
+function ramShape(n) {
+  const notch = (y) => arcPts(1.95, y, .06, Math.PI / 2, 1.5 * Math.PI, 10).reverse();
+  const out = [[-1.95, -.47], [-.29, -.47], [-.29, -.37], [-.21, -.37], [-.21, -.47], [1.95, -.47], [1.95, -.16], ...notch(-.1), [1.95, .47], [-1.95, .47], [-1.95, -.04], ...notch(-.1).map((p) => [-p[0], p[1]]).reverse(), [-1.95, -.47]];
+  const edge = poly(out), chipX = Array.from({ length: 8 }, (_, i) => -1.6 + i * .457);
+  const chips = polys(chipX.map((x) => poly(rrectPts(x - .17, -.07, x + .17, .32, .015))));
+  return build(n, 13, [
+    [.12, (r) => { const p = edge(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .7, false]; }],
+    [.2, (r) => { let x; do { x = -1.9 + Math.floor(r() * 136) * .028; } while (x > -.31 && x < -.19); return [x + (r() - .5) * .012, -.46 + r() * .12, .005, 3, .55, false]; }],
+    [.24, (r) => { const [p] = chips(r); return [p[0] + J(r, .003), p[1] + J(r, .003), .05, 2, .85, false]; }],
+    [.14, (r) => { const x = chipX[Math.floor(r() * 8)]; return [x + (r() - .5) * .32, -.06 + r() * .37, .05, 6, .16, false]; }],
+    [.05, (r) => { const x = chipX[Math.floor(r() * 8)], k = Math.floor(r() * 2); return [x - .1 + r() * (k ? .12 : .2), .2 - k * .06, .052, 6, .5, false]; }],
+    [.04, (r) => { const q = r(); return q < .5 ? [.95 + (r() - .5) * .14, -.22 + (r() - .5) * .1, .03, 0, .6, false] : [-1.7 + Math.floor(r() * 26) * .14 + (r() - .5) * .04, -.2 + (r() - .5) * .025, .02, 0, .4, false]; }],
+    [.08, (r) => { const x = -1.85 + Math.floor(r() * 66) * .056; return [x, -.33 + r() * .25, .002, 0, .12, false]; }],
+  ], 4.1, 1.15);
+}
+// ---------- 04 breadboard: holes, rails, DIP-8, resistors, jumpers and four LEDs (code 20 + i body, 30 + i glow) ----------
+function breadboardShape(n) {
+  const holes = [];
+  for (let c = 0; c < 30; c++) { for (const y of [.6, .5, .4, .3, .2, -.2, -.3, -.4, -.5, -.6]) holes.push([-1.45 + c * .1, y]); if (c % 6 !== 5) for (const y of [.98, .88, -.88, -.98]) holes.push([-1.45 + c * .1, y]); }
+  const outline = poly(rrectPts(-1.65, -1.1, 1.65, 1.1, .07)), rails = polys([[1.04], [.82], [-.82], [-1.04]].map(([y]) => poly([[-1.5, y], [1.5, y]])));
+  const ledCol = [12, 15, 18, 21], ledX = ledCol.map((c) => -1.45 + c * .1 + .05);
+  const bez = (A, B, h) => poly(Array.from({ length: 33 }, (_, i) => { const t = i / 32, m = mixp(A, B, t); return [m[0], m[1], h * 4 * t * (1 - t) + .01]; }));
+  const wires = polys([bez([-1.35, .93], [-1.05, .6], .32), bez([-1.15, -.93], [-.95, -.6], .28), bez([1.25, .93], [.85, .3], .3), ...ledX.map((x) => bez([x + .05, .3], [x + .05, -.2], .16))]);
+  const dip = polys([poly(zAt(rectPts(-1.2, -.16, -.8, .16), .09)), poly(zAt(arcPts(-1.2, 0, .04, -Math.PI / 2, Math.PI / 2, 12), .091))]);
+  return build(n, 14, [
+    [.05, (r) => { const p = outline(r()); return [p[0], p[1], 0, 0, .5, false]; }],
+    [.2, (r) => { const h = holes[Math.floor(r() * holes.length)]; return [h[0] + (r() - .5) * .035, h[1] + (r() - .5) * .035, 0, 0, .32, false]; }],
+    [.04, (r) => { const [p] = rails(r); return [p[0], p[1], 0, 0, .4, false]; }],
+    [.02, (r) => [-1.5 + r() * 3, J(r, .012), 0, 0, .15, false]],
+    [.12, (r) => { const [p] = wires(r); return [p[0] + J(r, .004), p[1] + J(r, .004), p[2] + J(r, .004), 0, .62, false]; }],
+    [.07, (r) => { const q = r(); if (q < .7) { const [p] = dip(r); return [p[0], p[1], p[2], 0, .8, false]; } const k = Math.floor(r() * 4), s = r() < .5 ? 1 : -1; return [-1.15 + k * .1, s * (.16 + r() * .06), .09 - r() * .09, 0, .6, false]; }],
+    [.08, (r) => { const x = ledX[Math.floor(r() * 4)] + .05, u = r(); if (u < .25) return [x + J(r, .004), -.3 - r() * .58, .02, 0, .5, false];
+      const y = -.42 - r() * .3, th = r() * TAU, band = Math.abs(((y + .42) / .3 * 5) % 1 - .5) < .12; return [x + Math.cos(th) * .035, y, .04 + Math.sin(th) * .035, 0, band ? .85 : .45, false]; }],
+    [.22, (r) => { const i = Math.floor(r() * 4), cx = ledX[i], cy = .26, q = r(); let p;
+      if (q < .12) { p = [cx + (r() < .5 ? -.05 : .05), cy - .06 + J(r, .003), r() * .08]; }
+      else if (q < .3) { const th = r() * TAU; p = [cx + Math.cos(th) * .1, cy + Math.sin(th) * .1, .08]; }
+      else if (q < .75) { const th = r() * TAU, z = .08 + r() * .16; p = [cx + Math.cos(th) * .085, cy + Math.sin(th) * .085, z]; }
+      else { const d = onSphere(r); p = [cx + d[0] * .085, cy + d[1] * .085, .24 + Math.abs(d[2]) * .085]; }
+      return [p[0], p[1], p[2], 20 + i, .7, false]; }],
+    [.07, (r) => { const i = Math.floor(r() * 4); return [ledX[i] + J(r, .09), .26 + J(r, .09), .22 + J(r, .07), 30 + i, .5, true]; }],
+  ], 3.5, 2.5);
+}
+// ---------- 05 server racks: frame, units, vents, drive bays; status LEDs are code 20 + id ----------
+function rackShape(n) {
+  const r0 = rng(55), parts = [], leds = [];
+  const U = .135, top = 1.215;
+  const RACKS = [[-.86, [['patch', 1], ['switch', 1], ['vent', 1], ['srv2', 2], ['srv2', 2], ['srv1', 1], ['srv1', 1], ['vent', 1], ['store', 3], ['ups', 2]]],
+                 [.86, [['switch', 1], ['switch', 1], ['vent', 1], ['srv1', 1], ['srv1', 1], ['srv1', 1], ['srv2', 2], ['vent', 1], ['srv2', 2], ['store', 3]]]];
+  const lines = [], fine = [], dots = [];
+  for (const [cx, units] of RACKS) {
+    const x0 = cx - .75, x1 = cx + .75, zf = .5, zb = -.6, y0 = -1.3, y1 = 1.3;
+    const C = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    for (const z of [zf, zb]) lines.push(poly(zAt(rectPts(x0, y0, x1, y1), z)));
+    for (const c of C) lines.push(poly([[c[0], c[1], zf], [c[0], c[1], zb]]));
+    for (const x of [x0 + .07, x1 - .07]) for (let k = 0; k < 54; k++) dots.push([x, top - .02 - k * U / 3, zf]);
+    let y = top;
+    for (const [kind, h] of units) {
+      const ya = y - h * U + .008, yb = y - .008, ux0 = x0 + .1, ux1 = x1 - .1;
+      lines.push(poly(zAt(rectPts(ux0, ya, ux1, yb), zf + .01)));
+      fine.push(poly(zAt([[ux0 + .03, ya + .02], [ux0 + .03, yb - .02]], zf + .02)), poly(zAt([[ux1 - .03, ya + .02], [ux1 - .03, yb - .02]], zf + .02)));
+      const led = (x, yy, steady) => leds.push([x, yy, zf + .02, steady]);
+      if (kind === 'patch' || kind === 'switch') { for (let k = 0; k < 24; k++) { const px = ux0 + .12 + (k % 12) * .085, py = ya + .03 + Math.floor(k / 12) * .05; fine.push(poly(zAt(rectPts(px, py, px + .05, py + .035), zf + .02))); if (kind === 'switch') led(px + .025, py + .044); } }
+      else if (kind === 'vent') { for (let k = 0; k < 40; k++) dots.push([ux0 + .1 + (k % 20) * .057 + (Math.floor(k / 20) % 2) * .028, ya + .04 + Math.floor(k / 20) * .05, zf + .02]); }
+      else if (kind === 'srv1' || kind === 'srv2') { const nb = kind === 'srv1' ? 4 : 8; for (let k = 0; k < nb; k++) { const bx = ux0 + .12 + (k % 4) * .22, by = ya + .02 + Math.floor(k / 4) * U; fine.push(poly(zAt(rectPts(bx, by, bx + .19, by + U - .04), zf + .02))); led(bx + .17, by + .03); }
+        for (let k = 0; k < 10; k++) dots.push([ux1 - .25 + (k % 5) * .04, ya + .03 + Math.floor(k / 5) * .04, zf + .02]); led(ux1 - .08, yb - .03, true); }
+      else if (kind === 'store') { for (let k = 0; k < 12; k++) { const bx = ux0 + .08 + (k % 4) * .28, by = ya + .03 + Math.floor(k / 4) * U; fine.push(poly(zAt(rectPts(bx, by, bx + .25, by + U - .05), zf + .02))); led(bx + .22, by + .035); led(bx + .18, by + .035); } }
+      else if (kind === 'ups') { fine.push(poly(zAt(rectPts(ux0 + .1, ya + .06, ux0 + .45, yb - .06), zf + .02))); for (let k = 0; k < 6; k++) fine.push(poly(zAt([[ux0 + .14, ya + .1 + k * .025], [ux0 + .14 + .05 * (6 - k), ya + .1 + k * .025]], zf + .02))); led(ux1 - .1, yb - .05, true); led(ux1 - .16, yb - .05, true); }
+      y -= h * U;
+    }
+    for (let k = 1; k < 9; k++) lines.push(poly([[x1, y0, zf - k * .122], [x1, y1, zf - k * .122]]));
+  }
+  const L = polys(lines), F = polys(fine);
+  return build(n, 15, [
+    [.24, (r) => { const [p] = L(r); return [p[0] + J(r, .003), p[1] + J(r, .003), p[2], 0, .5, false]; }],
+    [.38, (r) => { const [p] = F(r); return [p[0] + J(r, .002), p[1] + J(r, .002), p[2], 0, .55, false]; }],
+    [.14, (r) => { const d = dots[Math.floor(r() * dots.length)]; return [d[0] + J(r, .004), d[1] + J(r, .004), d[2], 0, .35, false]; }],
+    [.2, (r) => { const k = Math.floor(r() * leds.length), l = leds[k]; return [l[0] + J(r, .007), l[1] + J(r, .005), l[2] + .005, 20 + k, .9, l[3] || (k * 7) % 5 === 0]; }],
+  ], 3.6, 3.0);
+}
+// ---------- 06 hard drive: platter + hub (group 0), actuator arm + coil (code 4, swings about its pivot) ----------
+const HDD = { c: [-.42, .06], piv: [.98, -.58] };
+function hddShape(n) {
+  const [cx, cy] = HDD.c, [px, py] = HDD.piv;
+  const kase = poly(rrectPts(-1.45, -1.0, 1.45, 1.0, .08)), lip = poly(rrectPts(-1.38, -.93, 1.38, .93, .06));
+  const screws = [[-1.3, .85], [1.3, .85], [-1.3, -.85], [1.3, -.85], [-1.3, 0], [1.3, .15]];
+  const tracks = polys([.22, .3, .4, .5, .6, .7, .78].map((R) => poly(arcPts(cx, cy, R, 0, TAU, 96))));
+  const dir = Math.atan2(.55 - py, -.08 - px), L = 1.42, perp = dir + Math.PI / 2;
+  const at = (s, w) => [px + Math.cos(dir) * s + Math.cos(perp) * w, py + Math.sin(dir) * s + Math.sin(perp) * w];
+  const arm = poly([at(0, .12), at(.35, .1), at(1.2, .035), at(L, .03), at(L, -.03), at(1.2, -.035), at(.35, -.1), at(0, -.12)]);
+  const coil = poly([at(0, .12), at(-.42, .32), ...arcPts(px, py, .52, dir + Math.PI - .62, dir + Math.PI + .62, 20).reverse(), at(-.42, -.32), at(0, -.12)]);
+  const magnet = poly(rrectPts(px - .25, py - .55, px + .38, py + .2, .05));
+  const flex = polys([poly(Array.from({ length: 30 }, (_, i) => { const t = i / 29; return [px + .1 + t * .2, py - .12 - t * .2 - Math.sin(t * 3) * .05]; })), poly([[.3, -.98], [.7, -.98], [.7, -.88], [.3, -.88], [.3, -.98]])]);
+  return build(n, 16, [
+    [.07, (r) => { const p = kase(r()); return [p[0], p[1], 0, 0, .6, false]; }],
+    [.03, (r) => { const p = lip(r()); return [p[0], p[1], 0, 0, .25, false]; }],
+    [.03, (r) => { const s = screws[Math.floor(r() * 6)], th = r() * TAU; return r() < .6 ? [s[0] + Math.cos(th) * .04, s[1] + Math.sin(th) * .04, 0, 0, .55, false] : [s[0] + (r() < .5 ? (r() - .5) * .05 : 0), s[1] + (r() < .5 ? 0 : (r() - .5) * .05), 0, 0, .5, false]; }],
+    [.07, (r) => { const th = r() * TAU, R = .85 + J(r, .004); return [cx + Math.cos(th) * R, cy + Math.sin(th) * R, .02, 10, .85, false]; }],
+    [.14, (r) => { const [p] = tracks(r); return [p[0], p[1], .02, 10, .3, false]; }],
+    [.08, (r) => { const k = Math.floor(r() * 36), th = k / 36 * TAU, R = .24 + r() * .56; return [cx + Math.cos(th) * R, cy + Math.sin(th) * R, .02, 10, k % 9 === 0 ? .75 : .38, false]; }],
+    [.08, (r) => { const th = r() * TAU, R = Math.sqrt(.04 + r() * .64); const d = th - .9, g = Math.exp(-d * d * 6) + Math.exp(-(d - Math.PI) * (d - Math.PI) * 10) * .5; return [cx + Math.cos(th) * R, cy + Math.sin(th) * R, .015, 0, .05 + .35 * g, false]; }],
+    [.07, (r) => { const q = r(); if (q < .45) { const th = r() * TAU; return [cx + Math.cos(th) * .19, cy + Math.sin(th) * .19, .05, 10, .8, false]; }
+      const k = Math.floor(r() * 6), a = k / 6 * TAU + .3, th = r() * TAU; return [cx + Math.cos(a) * .12 + Math.cos(th) * .022, cy + Math.sin(a) * .12 + Math.sin(th) * .022, .06, 10, .7, false]; }],
+    [.14, (r) => { const p = arm(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), .09, 4, .8, false]; }],
+    [.02, (r) => { const p = at(L - .04 + (r() - .5) * .06, (r() - .5) * .05); return [p[0], p[1], .1, 4, .95, true]; }],
+    [.06, (r) => { const p = coil(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), .08, 4, .6, false]; }],
+    [.04, (r) => { const th = r() * TAU, q = r() < .5 ? .11 : .05; return [px + Math.cos(th) * q, py + Math.sin(th) * q, .11, 0, .85, false]; }],
+    [.04, (r) => { const p = magnet(r()); return [p[0], p[1], .03, 0, .32, false]; }],
+    [.03, (r) => { const [p] = flex(r); return [p[0] + J(r, .004), p[1] + J(r, .004), .04, 0, .35, false]; }],
+  ], 3.05, 2.1);
+}
+// ---------- 07 floppy: body, shutter, label (canvas text), disk surface behind the slot (code 2) ----------
+async function floppyShape(n) {
+  await fontsOK('40px ' + PIX, '500 20px ' + MONO);
+  const body = poly([[-1.0, -1.05], [1.0, -1.05], [1.0, .93], [.88, 1.05], [-1.0, 1.05], [-1.0, -1.05]]);
+  const shutter = poly(rectPts(-.62, .38, .32, 1.05)), slot = poly(rrectPts(-.07, .5, .17, .97, .03)), recess = poly(rectPts(-.75, .36, .45, 1.05));
+  const label = poly(rrectPts(-.84, -.98, .84, .22, .04)), wp = polys([poly(rectPts(-.94, -.99, -.82, -.87)), poly(rectPts(.82, -.99, .94, -.87))]);
+  const txt = ink(560, 400, 300, (g, X, Y) => {
+    g.fillStyle = '#fff'; g.font = '82px ' + PIX; g.textBaseline = 'alphabetic'; g.fillText('a.sh', X(-.76), Y(-.12));
+    g.fillStyle = 'rgb(150,150,150)'; g.font = '500 22px ' + MONO; g.fillText('BACKUP · 1989 · 1.44MB', X(-.76), Y(-.27));
+    g.fillStyle = 'rgb(90,90,90)'; for (const y of [-.48, -.63, -.78]) g.fillRect(X(-.76), Y(y), .5 * 300 * 3.04, 2);
+  });
+  return build(n, 17, [
+    [.12, (r) => { const p = body(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .78, false]; }],
+    [.05, (r) => [(r() - .5) * 1.98, (r() - .5) * 2.08, 0, 0, .1, false]],
+    [.09, (r) => { const p = shutter(r()); return [p[0], p[1], .02, 0, .85, false]; }],
+    [.06, (r) => { const y = .4 + Math.floor(r() * 26) * .025; const x = -.6 + r() * .9; return (x > -.08 && x < .18 && y > .49) ? [-.6 + r() * .5, y, .02, 0, .25, false] : [x, y, .02, 0, .25, false]; }],
+    [.05, (r) => { const p = slot(r()); return [p[0], p[1], .022, 0, .9, false]; }],
+    [.1, (r) => [-.06 + r() * .22, .51 + r() * .45, -.01, 2, .7, false]],
+    [.03, (r) => { const p = recess(r()); return [p[0], p[1], 0, 0, .3, false]; }],
+    [.08, (r) => { const p = label(r()); return [p[0], p[1], .01, 0, .55, false]; }],
+    [.22, (r) => { const [x, y, R] = txt(r); return [x, y + .03, .012, 0, .22 + .42 * R, false]; }],
+    [.02, (r) => { const [p] = wp(r); return [p[0], p[1], .01, 0, .6, false]; }],
+    [.006, (r) => [.88 + J(r, .01), -.93 + J(r, .01), .01, 0, .9, true]],
+  ], 2.2, 2.3);
+}
+// ---------- 08 cassette: shell, label, two reels (groups 0, 1), tape window, moving tape (code 3) ----------
+const CAS = { L: [-.75, .28], R: [.75, .28], rL: .62, rR: .42 };
+async function cassetteShape(n) {
+  await fontsOK('40px ' + PIX, '500 20px ' + MONO);
+  const shell = poly(rrectPts(-1.8, -1.13, 1.8, 1.13, .1)), label = poly(rrectPts(-1.58, -.32, 1.58, .98, .06));
+  const win = poly(rrectPts(-.42, .1, .42, .46, .04)), trap = poly([[-1.22, -1.13], [-1.0, -.56], [1.0, -.56], [1.22, -1.13]]);
+  const holes = polys([[-.62, -.95], [-.25, -.95], [.25, -.95], [.62, -.95]].map(([x, y]) => poly(rectPts(x - .07, y - .06, x + .07, y + .06))).concat([-.9, .9].map((x) => poly(arcPts(x, -.92, .06, 0, TAU, 24)))));
+  const screws = [[-1.62, .95], [1.62, .95], [-1.62, -.95], [1.62, -.95], [0, -.72]];
+  const txt = ink(1000, 600, 300, (g, X, Y) => {
+    g.fillStyle = '#fff'; g.font = '64px ' + PIX; g.fillText('a.sh', X(-1.42), Y(.66));
+    g.fillStyle = 'rgb(170,170,170)'; g.font = '500 24px ' + MONO; g.textAlign = 'right'; g.fillText('SIDE A  ·  C90', X(1.42), Y(.7));
+    g.fillStyle = 'rgb(100,100,100)'; g.fillRect(X(-1.42), Y(.56), 2.84 * 300, 2);
+  });
+  const inWin = (x, y) => x > -.4 && x < .4 && y > .12 && y < .44;
+  return build(n, 18, [
+    [.11, (r) => { const p = shell(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .78, false]; }],
+    [.07, (r) => { const p = label(r()); return [p[0], p[1], .01, 0, .45, false]; }],
+    [.14, (r) => { const [x, y, R] = txt(r); return [x, y, .012, 0, .25 + .5 * R, false]; }],
+    [.05, (r) => { const p = win(r()); return [p[0], p[1], .02, 0, .7, false]; }],
+    [.05, (r) => { const p = trap(r()); return [p[0], p[1], .01, 0, .5, false]; }],
+    [.03, (r) => { const [p] = holes(r); return [p[0], p[1], .01, 0, .5, false]; }],
+    [.03, (r) => { const s = screws[Math.floor(r() * 5)], th = r() * TAU; return r() < .6 ? [s[0] + Math.cos(th) * .045, s[1] + Math.sin(th) * .045, .01, 0, .55, false] : [s[0] + (r() - .5) * .06, s[1] + J(r, .004), .01, 0, .5, false]; }],
+    [.06, (r) => { const x = -1.0 + r() * 2.0; return [x, -1.06 + J(r, .006), .015, 3, .6, false]; }],
+    [.17, (r) => { const s = r() < .5 ? 0 : 1, C = s ? CAS.R : CAS.L, q = r(), th = r() * TAU; let R, br;
+      if (q < .35) { R = .2; br = .75; } else if (q < .55) { R = .09; br = .6; } else { const k = Math.floor(r() * 6), a = k / 6 * TAU; const rr = .09 + r() * .085; return [C[0] + Math.cos(a) * rr + J(r, .004), C[1] + Math.sin(a) * rr + J(r, .004), .02, 10 + s, .85, false]; }
+      return [C[0] + Math.cos(th) * R, C[1] + Math.sin(th) * R, .02, 10 + s, br, false]; }],
+    [.15, (r) => { for (let k = 0; k < 40; k++) { const x = -.4 + r() * .8, y = .12 + r() * .32, dl = Math.hypot(x - CAS.L[0], y - CAS.L[1]), dr = Math.hypot(x - CAS.R[0], y - CAS.R[1]);
+        if (dl < CAS.rL || dr < CAS.rR) return [x, y, .015, 6, .4, false]; } return [-.3, .28, .015, 6, .4, false]; }],
+    [.04, (r) => { for (let k = 0; k < 40; k++) { const s = r() < .5, C = s ? CAS.R : CAS.L, R = s ? CAS.rR : CAS.rL, th = r() * TAU, x = C[0] + Math.cos(th) * R, y = C[1] + Math.sin(th) * R; if (inWin(x, y)) return [x + J(r, .003), y, .016, 0, .85, false]; } return [-.13, .28, .016, 0, .85, false]; }],
+    [.01, (r) => { const th = r() * TAU; return [CAS.L[0] + Math.cos(th) * .03, CAS.L[1] + Math.sin(th) * .03, .03, 10, .9, true]; }],
+  ], 3.8, 2.6);
+}
+// ---------- 09 key cluster: 18 keycaps (code 20 + key body, 40 + key legend) ----------
+async function keysShape(n) {
+  await fontsOK('40px ' + PIX);
+  const rows = ['QWERTY', 'ASDFGH', 'ZXCVBN'], u = .44, keys = [];
+  rows.forEach((row, j) => [...row].forEach((ch, i) => keys.push({ ch, x: -1.27 + [0, .11, .33][j] + i * u, y: .44 - j * u })));
+  const legend = ink(1100, 520, 300, (g, X, Y) => { g.fillStyle = '#fff'; g.font = '46px ' + PIX; g.textAlign = 'center'; g.textBaseline = 'middle';
+    keys.forEach((k) => g.fillText(k.ch, X(k.x), Y(k.y + .02))); });
+  const top = poly(rrectPts(-.15, -.15, .15, .15, .04)), bot = poly(rrectPts(-.205, -.205, .205, .205, .03));
+  const caseO = polys([poly(zAt(rrectPts(-1.62, -.72, 1.85, .72, .08), -.02)), poly(zAt(rrectPts(-1.62, -.72, 1.85, .72, .08), -.14))]);
+  const keyAt = (x, y) => { let b = 0, d = 9; keys.forEach((k, i) => { const e = Math.hypot(k.x - x, k.y + .02 - y); if (e < d) { d = e; b = i; } }); return b; };
+  return build(n, 19, [
+    [.2, (r) => { const k = Math.floor(r() * 18), K = keys[k], p = top(r()); return [K.x + p[0], K.y + p[1] + .02, .17, 20 + k, .85, false]; }],
+    [.1, (r) => { const k = Math.floor(r() * 18), K = keys[k], p = bot(r()); return [K.x + p[0], K.y + p[1], 0, 20 + k, .4, false]; }],
+    [.12, (r) => { const k = Math.floor(r() * 18), K = keys[k], c = Math.floor(r() * 4), sx = c % 2 ? 1 : -1, sy = c > 1 ? 1 : -1, t = r(); return [K.x + sx * (.185 - .045 * t), K.y + sy * (.185 - .045 * t) + .02 * t, .17 * t, 20 + k, .5, false]; }],
+    [.12, (r) => { const k = Math.floor(r() * 18), K = keys[k], a = r() * TAU, rr = Math.sqrt(r()) * .14; return [K.x + Math.cos(a) * rr, K.y + Math.sin(a) * rr + .02, .16 - (.14 * .14 - rr * rr) * .6, 20 + k, .12, false]; }],
+    [.26, (r) => { const [x, y] = legend(r); const k = keyAt(x, y); return [x, y, .172, 40 + k, .6, false]; }],
+    [.08, (r) => { const [p] = caseO(r); return [p[0], p[1], p[2], 0, .3, false]; }],
+  ], 3.7, 1.7);
+}
+// ---------- 10 oscilloscope: graticule, labels, x-y trace (codes 2/3 carry their phase angle in x) ----------
+async function scopeShape(n) {
+  await fontsOK('500 20px ' + MONO);
+  const D = .3, X0 = 1.5, Y0 = 1.2, grid = [];
+  for (let i = -5; i <= 5; i++) grid.push(poly([[i * D, -Y0], [i * D, Y0]]));
+  for (let j = -4; j <= 4; j++) grid.push(poly([[-X0, j * D], [X0, j * D]]));
+  const G = polys(grid), border = poly(rectPts(-X0, -Y0, X0, Y0)), bezel = poly(rrectPts(-1.68, -1.4, 1.68, 1.4, .14)), q = (v) => Math.round(v / .03) * .03;
+  const lab = ink(1100, 900, 300, (g, X, Y) => { g.font = '500 19px ' + MONO; g.fillStyle = 'rgb(210,210,210)'; g.fillText('CH1  500mV', X(-1.42), Y(1.07)); g.fillText('CH2  500mV', X(-1.42), Y(-1.13)); g.textAlign = 'right'; g.fillText('X-Y  3:2', X(1.42), Y(1.07)); g.fillText('2.00 ms', X(1.42), Y(-1.13)); });
+  return build(n, 21, [
+    [.15, (r) => { const [p] = G(r); return [q(p[0]) + J(r, .003), q(p[1]) + J(r, .003), 0, 0, .3, false]; }],
+    [.05, (r) => { const k = Math.round((r() * 2 - 1) * 25) * .06, s = (r() - .5) * .05; return r() < .55 ? [k * 1.0, s, 0, 0, .5, false] : [s, k * .8, 0, 0, .5, false]; }],
+    [.05, (r) => { const p = border(r()); return [p[0], p[1], 0, 0, .5, false]; }],
+    [.04, (r) => { const p = bezel(r()); return [p[0], p[1], 0, 0, .25, false]; }],
+    [.05, (r) => { const [x, y, R] = lab(r); return [x, y, 0, 0, .3 + .3 * R, false]; }],
+    [.56, (r) => [r() * TAU, J(r, .006), J(r, .006), 2, .8, false]],
+    [.1, (r) => [r() * TAU, J(r, .03), J(r, .03), 3, .5, false]],
+  ], 3.6, 2.95);
+}
+// ---------- 11 spectrum analyser: segments (code 2), peak caps (3), floor reflection (4) ----------
+const SPEC = { NB: 24, P: .17, SG: 12, SP: .1, Y0: -.55 };
+function spectrumShape(n) {
+  const { NB, P, SG, SP, Y0 } = SPEC, x0 = -(NB - 1) * P / 2;
+  return build(n, 22, [
+    [.84, (r) => { const i = Math.floor(r() * NB), j = Math.floor(r() * SG); return [x0 + i * P + (r() - .5) * .12, Y0 + j * SP + (r() - .5) * .066, 0, 2, .8, false]; }],
+    [.11, (r) => { const i = Math.floor(r() * NB); return [x0 + i * P + (r() - .5) * .12, (r() - .5) * .022, 0, 3, .9, true]; }],
+    [.05, (r) => { const k = Math.floor(r() * 60); return [x0 - .1 + k * (NB * P + .02) / 59 + J(r, .002), Y0 - .085 + J(r, .002), 0, 0, k % 5 ? .3 : .55, false]; }],
+  ], 4.3, 1.55);
+}
+// ---------- 12 radar: rings, ticks, labels, phosphor (code 3), sweep line (group 0), contacts (code 4) ----------
+async function radarShape(n) {
+  await fontsOK('500 20px ' + MONO);
+  const R = 1.25, rings = polys([.25, .5, .75].map((k) => poly(arcPts(0, 0, R * k, 0, TAU, 120)))), rim = poly(arcPts(0, 0, R, 0, TAU, 160));
+  const lab = ink(1100, 1100, 300, (g, X, Y) => { g.font = '500 20px ' + MONO; g.fillStyle = 'rgb(200,200,200)'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('000', X(0), Y(1.47)); g.fillText('180', X(0), Y(-1.47)); g.fillText('090', X(1.53), Y(0)); g.fillText('270', X(-1.53), Y(0)); });
+  const r0 = rng(5), blips = Array.from({ length: 7 }, () => { const a = r0() * TAU, d = .3 + r0() * .85; return [Math.cos(a) * d, Math.sin(a) * d]; });
+  return build(n, 23, [
+    [.08, (r) => { const [p] = rings(r); return [p[0], p[1], 0, 0, .3, false]; }],
+    [.05, (r) => { const p = rim(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .7, false]; }],
+    [.04, (r) => { const v = Math.round((r() * 2 - 1) * R / .03) * .03; return r() < .5 ? [v, 0, 0, 0, .25, false] : [0, v, 0, 0, .25, false]; }],
+    [.06, (r) => { const k = Math.floor(r() * 72), a = k / 72 * TAU, L = k % 6 === 0 ? .1 : .045, d = R + .03 + r() * L; return [Math.cos(a) * d, Math.sin(a) * d, 0, 0, k % 6 === 0 ? .7 : .45, false]; }],
+    [.04, (r) => { const [x, y, Q] = lab(r); return [x, y, 0, 0, .3 + .3 * Q, false]; }],
+    [.52, (r) => { const a = r() * TAU, d = Math.sqrt(r()) * R; return [Math.cos(a) * d, Math.sin(a) * d, 0, 3, .55, false]; }],
+    [.08, (r) => { const d = Math.pow(r(), .8) * R; return [J(r, .004 + .004 * d), d, .002, 10, .75 + .2 * d, false]; }],
+    [.05, (r) => { const b = blips[Math.floor(r() * blips.length)]; return [b[0] + J(r, .022), b[1] + J(r, .022), 0, 4, .9, true]; }],
+    [.01, (r) => [J(r, .02), J(r, .02), 0, 0, .9, false]],
+  ], 3.1, 3.3);
+}
+// ---------- 13 satellite dish: paraboloid in its own frame, aimed up-left; sways (code 2); wavefronts (code 3: angle in x, index in y) ----------
+const DISH = { f: .62, rx: -.55, ry: -.62, lift: .35 };
+{ const q = ry(rx([0, 0, -.2], DISH.rx), DISH.ry); DISH.px = q[0]; DISH.pz = q[2]; }
+function dishShape(n) {
+  const { f, lift } = DISH, aim = (p) => { const q = ry(rx(p, DISH.rx), DISH.ry); return [q[0], q[1] + lift, q[2]]; };
+  const par = (rho, ph) => [rho * Math.cos(ph), rho * Math.sin(ph), rho * rho / (4 * f)];
+  const back = aim([0, 0, -.2]), px = back[0], pz = back[2];
+  const struts = [90, 210, 330].map((d) => poly([par(.95, d * Math.PI / 180), [0, 0, f - .06]]));
+  const S = polys(struts);
+  const ped = polys([poly([[px, back[1] - .04, pz], [px, -1.2, pz]]), poly([[px + .06, back[1] - .1, pz], [px + .06, -1.2, pz]]), poly([[px - .06, back[1] - .1, pz], [px - .06, -1.2, pz]]),
+    poly(arcPts(0, 0, .42, 0, TAU, 80).map(([x, z]) => [px + x, -1.25, pz + z])), poly(arcPts(0, 0, .22, 0, TAU, 60).map(([x, z]) => [px + x, -1.15, pz + z])), poly(arcPts(0, 0, .1, 0, TAU, 40).map(([x, z]) => [px + x, back[1] - .06, pz + z]))]);
+  return build(n, 24, [
+    [.2, (r) => { const k = Math.floor(r() * 4), rho = [.24, .48, .71, .95][k] + J(r, .003); return [...aim(par(rho, r() * TAU)), 2, k === 3 ? .9 : .45, false]; }],
+    [.13, (r) => { const ph = Math.floor(r() * 16) / 16 * TAU; return [...aim(par(.08 + r() * .87, ph)), 2, .38, false]; }],
+    [.12, (r) => [...aim(par(Math.sqrt(r()) * .95, r() * TAU)), 2, .12, false]],
+    [.06, (r) => { const [p] = S(r); return [...aim([p[0] + J(r, .004), p[1] + J(r, .004), p[2]]), 2, .55, false]; }],
+    [.05, (r) => { const a = r() * TAU, z = f - .14 + r() * .2, w = .035 + (z - f + .14) * .15; return [...aim([Math.cos(a) * w, Math.sin(a) * w, z]), 2, .85, false]; }],
+    [.01, (r) => [...aim([J(r, .02), J(r, .02), f - .1 + J(r, .01)]), 2, .9, true]],
+    [.05, (r) => { const a = r() * TAU, z = -.04 - r() * .18; return [...aim([Math.cos(a) * .09, Math.sin(a) * .09, z]), 2, .6, false]; }],
+    [.1, (r) => { const [p] = ped(r); return [p[0] + J(r, .004), p[1], p[2] + J(r, .004), 0, .5, false]; }],
+    [.17, (r) => [r() * TAU, Math.floor(r() * 3), J(r, .005), 3, .7, false]],
+  ], 2.9, 3.1);
+}
+// ---------- 14 radio mast: triangular lattice (group 0 turns), beacon (3), signal rings (4: angle in x, index in y) ----------
+function mastShape(n) {
+  const legA = [0, 1, 2].map((k) => k * TAU / 3 + Math.PI / 2), rad = (y) => .42 + (.1 - .42) * (y + 1.3) / 2.4;
+  const P = (k, y) => { const a = legA[k % 3], R = rad(y); return [Math.cos(a) * R, y, Math.sin(a) * R]; };
+  const L = 12, ys = Array.from({ length: L + 1 }, (_, i) => -1.3 + i * 2.4 / L);
+  const legs = polys([0, 1, 2].map((k) => poly([P(k, -1.3), P(k, 1.1)]))), hz = [], dg = [], ant = [], guys = [];
+  for (let i = 0; i <= L; i++) for (let k = 0; k < 3; k++) { hz.push(poly([P(k, ys[i]), P(k + 1, ys[i])])); if (i < L) dg.push(poly([P(k, ys[i]), P(k + 1, ys[i + 1])]), poly([P(k + 1, ys[i]), P(k, ys[i + 1])])); }
+  for (let k = 0; k < 3; k++) for (const [y0, y1, off] of [[.72, 1.02, Math.PI / 3], [.4, .58, 0]]) {
+    const a = legA[k] + off, Rr = rad((y0 + y1) / 2) + .08, c = [Math.cos(a) * Rr, 0, Math.sin(a) * Rr], t = [-Math.sin(a) * .055, 0, Math.cos(a) * .055];
+    ant.push(poly([[c[0] - t[0], y0, c[2] - t[2]], [c[0] + t[0], y0, c[2] + t[2]], [c[0] + t[0], y1, c[2] + t[2]], [c[0] - t[0], y1, c[2] - t[2]]], true));
+  }
+  for (let k = 0; k < 3; k++) { const top = P(k, .5), a = legA[k]; guys.push(poly([top, [Math.cos(a) * 1.75, -1.3, Math.sin(a) * 1.75]])); }
+  const H = polys(hz), D = polys(dg), A = polys(ant), Gw = polys(guys);
+  const dA = legA[0] + Math.PI / 3 + Math.PI, dR = rad(.22) + .07, dc = [Math.cos(dA) * dR, .22, Math.sin(dA) * dR], dt = [-Math.sin(dA), 0, Math.cos(dA)], dn = [Math.cos(dA), 0, Math.sin(dA)];
+  return build(n, 25, [
+    [.13, (r) => { const [p] = legs(r); return [p[0] + J(r, .004), p[1], p[2] + J(r, .004), 10, .8, false]; }],
+    [.08, (r) => { const [p] = H(r); return [p[0], p[1], p[2], 10, .45, false]; }],
+    [.16, (r) => { const [p] = D(r); return [p[0], p[1], p[2], 10, .34, false]; }],
+    [.1, (r) => { const [p] = A(r); return [p[0], p[1], p[2], 10, .75, false]; }],
+    [.03, (r) => { const a = r() * TAU, rr = .11, s = r() < .5 ? 0 : .07; return [dc[0] + dt[0] * Math.cos(a) * rr + dn[0] * s, dc[1] + Math.sin(a) * rr, dc[2] + dt[2] * Math.cos(a) * rr + dn[2] * s, 10, .6, false]; }],
+    [.04, (r) => { const [p, , u] = Gw(r); return (Math.floor(u * 60) % 2) ? [p[0], p[1], p[2], 10, .22, false] : [p[0], p[1], p[2], 10, .12, false]; }],
+    [.03, (r) => [J(r, .006), 1.1 + r() * .4, J(r, .006), 10, .7, false]],
+    [.012, (r) => [J(r, .025), 1.52 + J(r, .02), J(r, .025), 3, .9, true]],
+    [.03, (r) => { const a = r() * TAU, q = r() < .5 ? .55 : 1.75; return [Math.cos(a) * q, -1.3, Math.sin(a) * q, 0, q > 1 ? .08 : .3, false]; }],
+    [.26, (r) => [r() * TAU, Math.floor(r() * 3), J(r, .007), 4, .65, false]],
+  ], 3.6, 3.35);
+}
+// ---------- 15 wave field: rows on the xz plane; the hook raises them (code 2) ----------
+function waveShape(n) {
+  const rows = 34;
+  return build(n, 26, [
+    [.86, (r) => { const j = Math.floor(r() * rows); return [-2.7 + r() * 5.4, 0, -1.6 + j * 3.2 / (rows - 1) + J(r, .003), 2, .55, false]; }],
+    [.14, (r) => { const i = Math.floor(r() * 46), j = Math.floor(r() * rows); return [-2.7 + i * 5.4 / 45 + J(r, .004), 0, -1.6 + j * 3.2 / (rows - 1), 2, .75, false]; }],
+  ], 5.4, 2.4);
+}
+// ---------- 16 terminal: window chrome + a shell session drawn to canvas and sampled; cursor is code 2 ----------
+async function terminalShape(n) {
+  await fontsOK('500 44px ' + MONO, '500 26px ' + MONO);
+  const days = Math.floor((Date.now() - new Date(1989, 8, 1)) / 864e5).toLocaleString('en-GB');
+  const x0 = -1.76, lh = .3, y0 = .48, lines = [
+    [['~ $ ', 120], ['ssh ash@a.sh', 255]],
+    [[`connected · uptime ${days} days`, 160]],
+    [['~ $ ', 120], ['ls side-projects', 255]],
+    [['glider.game  2.domains  esp32-projects', 160]],
+    [['~ $ ', 120]],
+  ];
+  let cw = .088;
+  const txt = ink(1260, 720, 300, (g, X, Y) => {
+    g.font = '500 44px ' + MONO; g.textBaseline = 'alphabetic'; cw = g.measureText('M').width / 300;
+    lines.forEach((segs, i) => { let x = x0; for (const [str, v] of segs) { g.fillStyle = `rgb(${v},${v},${v})`; g.fillText(str, X(x), Y(y0 - i * lh)); x += g.measureText(str).width / 300; } });
+    g.font = '500 26px ' + MONO; g.fillStyle = 'rgb(130,130,130)'; g.textAlign = 'center'; g.fillText('ash@a.sh: ~ — 80×24', X(.1), Y(.875));
+  });
+  const frame = poly(rrectPts(-1.95, -1.1, 1.95, 1.1, .09)), bar = poly([[-1.95, .76], [1.95, .76]]);
+  const lights = polys([-1.78, -1.64, -1.5].map((x) => poly(arcPts(x, .93, .045, 0, TAU, 24))));
+  const cx = x0 + 4 * cw, cyb = y0 - 4 * lh;
+  return build(n, 31, [
+    [.08, (r) => { const p = frame(r()); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, .6, false]; }],
+    [.02, (r) => { const p = bar(r()); return [p[0], p[1], 0, 0, .35, false]; }],
+    [.02, (r) => { const [p] = lights(r); return [p[0], p[1], 0, 0, .6, false]; }],
+    [.7, (r) => { const [x, y, R] = txt(r); return [x, y, 0, 0, .22 + .62 * R, false]; }],
+    [.06, (r) => [cx + r() * cw * .92, cyb - .03 + r() * .16, 0, 2, .85, true]],
+    [.03, (r) => [(r() - .5) * 3.85, -1.08 + r() * 1.82, 0, 0, .05, false]],
+  ], 4.0, 2.3);
+}
+// ---------- 17 qr scan: 25 x 25 modules (code 2), viewfinder brackets, scan line (code 3) ----------
+function qrShape(n) {
+  const M = 25, m = .085, r0 = rng(99), dark = [];
+  const finder = (i, j, ox, oy) => { const x = i - ox, y = j - oy; if (x < 0 || y < 0 || x > 6 || y > 6) return null; return x === 0 || y === 0 || x === 6 || y === 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4); };
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
+    let v = null, f = false;
+    for (const [ox, oy] of [[0, 0], [18, 0], [0, 18]]) { const q = finder(i, j, ox, oy); if (q !== null) { v = q; f = true; } }
+    if (v === null && ((i <= 7 && j <= 7) || (i >= 17 && j <= 7) || (i <= 7 && j >= 17))) v = false;
+    if (v === null && i >= 16 && i <= 20 && j >= 16 && j <= 20) { const x = i - 16, y = j - 16; v = x === 0 || y === 0 || x === 4 || y === 4 || (x === 2 && y === 2); f = true; }
+    if (v === null && (i === 6 || j === 6)) v = (i + j) % 2 === 0;
+    if (v === null) v = r0() < .47;
+    if (v) dark.push([(i - 12) * m, (12 - j) * m, f]);
+  }
+  const B = 1.3, A = .32, br = polys([[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([sx, sy]) => poly([[sx * (B - A), sy * B], [sx * B, sy * B], [sx * B, sy * (B - A)]])));
+  return build(n, 32, [
+    [.76, (r) => { const d = dark[Math.floor(r() * dark.length)]; return [d[0] + (r() - .5) * m * .82, d[1] + (r() - .5) * m * .82, 0, 2, d[2] ? .9 : .7, false]; }],
+    [.08, (r) => { const [p] = br(r); return [p[0] + J(r, .004), p[1] + J(r, .004), 0, 0, .7, false]; }],
+    [.1, (r) => [(r() - .5) * 2.8, J(r, .006), .02, 3, .8, true]],
+    [.04, (r) => [(r() - .5) * 2.4, J(r, .03), .02, 3, .25, true]],
+  ], 2.85, 2.85);
+}
+// ---------- 18 binary rain: pixel 0/1 glyphs; each column (code 100 + i) falls and wraps in the hook ----------
+const GLYPH = { 0: ['010', '101', '101', '101', '010'], 1: ['010', '110', '010', '010', '111'] };
+function rainShape(n) {
+  const r0 = rng(31), NC = 30, px = .036, pix = [];
+  for (let c = 0; c < NC; c++) {
+    const x = -2.3 + c * 4.6 / (NC - 1) + (r0() - .5) * .05, z = -1.4 + r0() * 2.4, D = 5 + Math.floor(r0() * 8);
+    for (let k = 0; k <= D; k++) { const g = GLYPH[r0() < .5 ? 0 : 1]; for (let row = 0; row < 5; row++) for (let col = 0; col < 3; col++) if (g[row][col] === '1') pix.push([x + (col - 1) * px, k * .22 + .025 + (4 - row) * px, z, 100 + c]); }
+  }
+  return build(n, 33, [[1, (r) => { const q = pix[Math.floor(r() * pix.length)]; return [q[0] + (r() - .5) * px * .7, q[1] + (r() - .5) * px * .7, q[2], q[3], .85, false]; }]], 4.9, 2.7);
+}
+// ---------- 19 network graph: nodes (code 2), dotted links (0), packets (code 100 + k, endpoints in uniforms) ----------
+const NET = (() => {
+  const r = rng(61), nodes = [];
+  for (let i = 0; i < 24; i++) { const y = 1 - 2 * (i + .5) / 24, rr = Math.sqrt(1 - y * y), th = i * 2.39996; nodes.push([Math.cos(th) * rr * 2.0 + (r() - .5) * .3, y * 1.05 + (r() - .5) * .2, Math.sin(th) * rr * 1.0 + (r() - .5) * .2]); }
+  const edges = [], has = new Set();
+  nodes.forEach((a, i) => { const d = nodes.map((b, j) => [Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), j]).filter(([, j]) => j !== i).sort((x, y) => x[0] - y[0]);
+    for (const [, j] of d.slice(0, 3)) { const key = Math.min(i, j) + '-' + Math.max(i, j); if (!has.has(key)) { has.add(key); edges.push([i, j]); } } });
+  const packets = Array.from({ length: 18 }, () => { const e = edges[Math.floor(r() * edges.length)]; return r() < .5 ? e : [e[1], e[0]]; });
+  return { nodes, edges, packets };
+})();
+function networkShape(n) {
+  const { nodes, edges, packets } = NET, list = edges.map(([i, j]) => poly([nodes[i], nodes[j]])), E = polys(list);
+  const deg = nodes.map((_, i) => edges.filter((e) => e.includes(i)).length);
+  return build(n, 34, [
+    [.34, (r) => { const [, i, u] = E(r), f = list[i], uq = Math.round(u * f.len / .032) * .032 / f.len, p = f(uq); return [p[0] + J(r, .004), p[1] + J(r, .004), p[2] + J(r, .004), 0, .4, false]; }],
+    [.34, (r) => { const i = Math.floor(r() * nodes.length), q = nodes[i], s = .03 + deg[i] * .009, d = onSphere(r), rr = r() < .55 ? s : s * Math.cbrt(r()); return [q[0] + d[0] * rr, q[1] + d[1] * rr, q[2] + d[2] * rr, 2, deg[i] > 4 ? .95 : .7, deg[i] > 5 && r() < .6]; }],
+    [.12, (r) => { const i = Math.floor(r() * nodes.length), q = nodes[i], s = .075 + deg[i] * .012, a = r() * TAU; return [q[0] + Math.cos(a) * s, q[1] + Math.sin(a) * s, q[2], 6, .35, false]; }],
+    [.2, (r) => { const k = Math.floor(r() * packets.length); return [J(r, .016), J(r, .016), J(r, .016), 100 + k, .9, true]; }],
+  ], 4.4, 2.5);
+}
+// ---------- 20 globe: dotted land, graticule, routes (code 7: s in x, route in y), cities (8), satellite orbit (group 0), limb (6) ----------
+const LAND = [
+  [[-168, 66], [-140, 70], [-95, 72], [-80, 63], [-62, 58], [-55, 50], [-67, 44], [-75, 35], [-81, 25], [-97, 26], [-97, 18], [-87, 15], [-80, 8], [-92, 15], [-105, 20], [-115, 30], [-124, 40], [-125, 49], [-135, 58], [-150, 60], [-165, 60]],
+  [[-55, 60], [-45, 60], [-20, 70], [-20, 80], [-60, 82], [-70, 77], [-55, 70]],
+  [[-80, 8], [-60, 10], [-50, 0], [-35, -7], [-40, -22], [-57, -38], [-65, -55], [-75, -50], [-71, -20], [-81, -5]],
+  [[-10, 36], [-9, 43], [-1, 46], [-5, 48], [3, 51], [8, 55], [5, 62], [15, 69], [28, 71], [40, 67], [45, 47], [40, 41], [28, 41], [22, 36], [15, 38], [10, 44], [3, 43]],
+  [[-17, 21], [-10, 30], [-5, 36], [10, 37], [32, 31], [35, 28], [43, 12], [51, 12], [40, -5], [40, -15], [35, -25], [20, -35], [15, -28], [12, -15], [8, 4], [-8, 4], [-17, 14]],
+  [[28, 41], [40, 41], [45, 47], [40, 67], [60, 70], [80, 73], [110, 77], [140, 72], [180, 68], [170, 60], [155, 59], [140, 50], [130, 42], [121, 31], [120, 22], [108, 20], [105, 10], [100, 13], [98, 8], [92, 22], [80, 14], [77, 8], [72, 20], [66, 25], [57, 25], [50, 30], [48, 29], [55, 17], [44, 13], [35, 28], [35, 36]],
+  [[114, -22], [122, -17], [131, -12], [137, -12], [142, -11], [146, -19], [153, -26], [150, -37], [141, -38], [131, -31], [115, -34]],
+  [[-5, 50], [1, 51], [-2, 57], [-6, 58]], [[130, 31], [140, 36], [142, 43], [141, 45], [139, 38]], [[44, -25], [50, -15], [49, -12], [43, -17]],
+  [[95, 5], [105, -6], [115, -8], [120, -9], [119, -5], [110, -2], [100, 3]], [[109, 1], [117, 7], [119, 1], [116, -4], [110, -2]], [[166, -46], [174, -41], [178, -38], [172, -34], [168, -45]],
+];
+const CITIES = [[-.1, 51.5], [-74, 40.7], [-122.4, 37.8], [139.7, 35.7], [103.8, 1.3], [151.2, -33.9], [-46.6, -23.5], [28, -26.2], [55.3, 25.3], [72.9, 19.1]];
+const ROUTES = [[0, 1], [1, 2], [0, 8], [8, 4], [4, 3], [4, 5], [1, 6], [0, 7], [2, 3], [9, 0]];
+const ll = (lon, lat) => { const a = lon * Math.PI / 180, b = lat * Math.PI / 180; return [Math.cos(b) * Math.sin(a), Math.sin(b), Math.cos(b) * Math.cos(a)]; };
+function inPoly(x, y, P) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+const SAT_N = nrm([.32, 1, .22]);
+function globeShape(n) {
+  const land = [];
+  for (let lat = -58; lat <= 80; lat += 2.4) { const st = 2.4 / Math.cos(lat * Math.PI / 180); for (let lon = -180; lon < 180; lon += st) if (LAND.some((P) => inPoly(lon, lat, P))) land.push(ll(lon, lat)); }
+  const [su, sv] = basis(SAT_N);
+  return build(n, 35, [
+    [.46, (r) => { const q = land[Math.floor(r() * land.length)], k = 1 + J(r, .002); return [q[0] * k + J(r, .0035), q[1] * k + J(r, .0035), q[2] * k + J(r, .0035), 0, .95, false]; }],
+    [.16, (r) => { const s = Math.round(r() * 240) / 240 * 360 - 180; if (r() < .5) { const lat = (Math.floor(r() * 5) - 2) * 30; const q = ll(s, lat); return [q[0], q[1], q[2], 0, lat === 0 ? .32 : .2, false]; }
+      const lon = Math.floor(r() * 12) * 30, q = ll(lon, s / 2); return [q[0], q[1], q[2], 0, .2, false]; }],
+    [.04, (r) => { const a = r() * TAU; return [Math.cos(a) * 1.006, Math.sin(a) * 1.006, 0, 6, .55, false]; }],
+    [.2, (r) => [r(), Math.floor(r() * ROUTES.length), J(r, .004), 7, .6, false]],
+    [.03, (r) => { const q = ll(...CITIES[Math.floor(r() * CITIES.length)]), d = onSphere(r), s = .018 * Math.cbrt(r()); return [q[0] * 1.01 + d[0] * s, q[1] * 1.01 + d[1] * s, q[2] * 1.01 + d[2] * s, 8, .95, false]; }],
+    [.12, (r) => { const a = r() * TAU, R = 1.42 + J(r, .004); return [su[0] * Math.cos(a) * R + sv[0] * Math.sin(a) * R, su[1] * Math.cos(a) * R + sv[1] * Math.sin(a) * R, su[2] * Math.cos(a) * R + sv[2] * Math.sin(a) * R, 10, .22 + .6 * Math.pow(Math.max(0, Math.cos(a / 2)), 30), false]; }],
+    [.02, (r) => { const q = r(), c = [su[0] * 1.42, su[1] * 1.42, su[2] * 1.42]; if (q < .45) return [c[0] + J(r, .02), c[1] + J(r, .02), c[2] + J(r, .02), 10, .95, true];
+      const w = (r() - .5) * .2; return [c[0] + sv[0] * w, c[1] + sv[1] * w + J(r, .006), c[2] + sv[2] * w, 10, .75, false]; }],
+  ], 3.1, 2.65);
+}
+// ---------- 21 atom: nucleus (group 3 tumbles), three orbits with comet-tailed electrons (groups 0-2) ----------
+const ATOM = [0, 1, 2].map((k) => nrm(rz(rx([0, 0, 1], 1.22), k * TAU / 3 + .3)));
+function atomShape(n) {
+  const nuc = [[0, 0, 0]]; for (let i = 0; i < 12; i++) { const y = 1 - 2 * (i + .5) / 12, q = Math.sqrt(1 - y * y), th = i * 2.4; nuc.push([Math.cos(th) * q * .14, y * .14, Math.sin(th) * q * .14]); }
+  const R = 1.25;
+  return build(n, 41, [
+    [.2, (r) => { const k = Math.floor(r() * nuc.length), c = nuc[k], d = onSphere(r), s = .066 * (r() < .7 ? 1 : Math.cbrt(r())); return [c[0] + d[0] * s, c[1] + d[1] * s, c[2] + d[2] * s, 13, k % 4 === 0 ? .9 : .6, k % 5 === 1]; }],
+    [.78, (r) => { const k = Math.floor(r() * 3), [u, v] = basis(ATOM[k]), q = r();
+      if (q < .06) { const d = onSphere(r), s = .045 * Math.cbrt(r()); return [u[0] * R + d[0] * s, u[1] * R + d[1] * s, u[2] * R + d[2] * s, 10 + k, .95, true]; }
+      const th = q < .55 ? -Math.pow(r(), 2.2) * TAU : -r() * TAU, fall = Math.exp(th * .55), rr = R + J(r, .004 + .012 * (1 - fall)), c = Math.cos(th), s = Math.sin(th);
+      return [(u[0] * c + v[0] * s) * rr, (u[1] * c + v[1] * s) * rr, (u[2] * c + v[2] * s) * rr, 10 + k, .18 + .75 * fall, fall > .85 && r() < .2]; }],
+    [.02, (r) => { const d = onSphere(r), s = .3 * Math.cbrt(r()); return [d[0] * s, d[1] * s, d[2] * s, 13, .12, false]; }],
+  ], 2.8, 2.8);
+}
+// ---------- 22 dna: two backbones and base-pair rungs, all one group turning about x ----------
+function dnaShape(n) {
+  const R = .42, pitch = 1.2, L = 2.2, gap = 2.3, rungs = [];
+  for (let x = -L; x <= L + 1e-6; x += .12) rungs.push(x);
+  const strand = (x, ph) => { const a = TAU * x / pitch + ph; return [x, Math.cos(a) * R, Math.sin(a) * R]; };
+  return build(n, 42, [
+    [.46, (r) => { const p = strand(-L + r() * 2 * L, r() < .5 ? 0 : gap); return [p[0] + J(r, .012), p[1] + J(r, .012), p[2] + J(r, .012), 10, .8, false]; }],
+    [.1, (r) => { const p = strand(Math.round((-L + r() * 2 * L) / .06) * .06, r() < .5 ? 0 : gap), d = onSphere(r), s = .022; return [p[0] + d[0] * s, p[1] + d[1] * s, p[2] + d[2] * s, 10, .95, false]; }],
+    [.44, (r) => { const k = Math.floor(r() * rungs.length), x = rungs[k], A = strand(x, 0), B = strand(x, gap), t = r(), half = t < .5 ? 0 : 1, u = half ? .54 + (t - .5) * .92 : .04 + t * .84, p = mixp(A, B, u);
+      return [p[0] + J(r, .006), p[1] + J(r, .006), p[2] + J(r, .006), 10, .45, (k * 7 + half * 3) % 9 === 0]; }],
+  ], 4.8, 2.0);
+}
+// ---------- 23 torus knot (3,7): tube params (u, v, radius) in xyz, built in the hook (code 2) ----------
+function knotShape(n) {
+  return build(n, 43, [
+    [.72, (r) => [r() * TAU, r() * TAU, .075 + J(r, .004), 2, .55, false]],
+    [.28, (r) => [r() * TAU, r() * TAU, .025 * Math.sqrt(r()), 2, .85, false]],
+  ], 2.9, 2.9);
+}
+// ---------- 24 star chart: Ursa Major on a ra/dec grid (stars code 20 + i, field stars 3, reticle group 0 on Mizar) ----------
+const UMA = { Dubhe: [11.062, 61.75, 1.8], Merak: [11.031, 56.38, 2.4], Phecda: [11.897, 53.69, 2.4], Megrez: [12.257, 57.03, 3.3], Alioth: [12.9, 55.96, 1.8], Mizar: [13.399, 54.93, 2.2], Alkaid: [13.792, 49.31, 1.9],
+  Muscida: [8.505, 60.72, 3.4], h23: [9.525, 63.06, 3.7], ups: [9.849, 59.04, 3.8], theta: [9.548, 51.68, 3.2], iota: [8.987, 48.04, 3.1], kappa: [9.06, 47.16, 3.6], lambda: [10.284, 42.91, 3.4], mu: [10.372, 41.5, 3.1],
+  nu: [11.308, 33.09, 3.5], xi: [11.303, 31.53, 3.8], chi: [11.767, 47.78, 3.7], psi: [11.161, 44.5, 3.0], Alcor: [13.42, 54.99, 4.0] };
+const UMA_LINES = [['Alkaid', 'Mizar'], ['Mizar', 'Alioth'], ['Alioth', 'Megrez'], ['Megrez', 'Dubhe'], ['Dubhe', 'Merak'], ['Merak', 'Phecda'], ['Phecda', 'Megrez'], ['Dubhe', 'h23'], ['h23', 'Muscida'],
+  ['h23', 'ups'], ['ups', 'theta'], ['theta', 'iota'], ['theta', 'kappa'], ['Phecda', 'chi'], ['chi', 'nu'], ['nu', 'xi'], ['chi', 'psi'], ['psi', 'lambda'], ['lambda', 'mu']];
+const sky = (ra, dec) => [-(ra - 11.15) * 15 * Math.cos(dec * Math.PI / 180) / 10 + .32, (dec - 49) / 10 + .17, 0];
+const MIZAR = sky(UMA.Mizar[0], UMA.Mizar[1]);
+async function constellationShape(n) {
+  await fontsOK('500 20px ' + MONO);
+  const names = Object.keys(UMA), P = names.map((k) => sky(UMA[k][0], UMA[k][1])), mag = names.map((k) => UMA[k][2]), at = (k) => P[names.indexOf(k)];
+  const lines = polys(UMA_LINES.map(([a, b]) => { const A = at(a), B = at(b), d = Math.hypot(B[0] - A[0], B[1] - A[1]), g = .075 / d; return poly([mixp(A, B, g), mixp(A, B, 1 - g)]); }));
+  const BX = 2.55, BY = 1.75, inBox = (p) => Math.abs(p[0]) < BX && Math.abs(p[1]) < BY;
+  const grid = []; for (let d = 30; d <= 65; d += 5) grid.push(poly(Array.from({ length: 41 }, (_, i) => sky(7.6 + i * .17, d))));
+  for (let h = 8; h <= 14; h++) grid.push(poly(Array.from({ length: 41 }, (_, i) => sky(h, 28 + i * .95))));
+  const G = polys(grid), frame = poly(rectPts(-BX, -BY, BX, BY)), wt = mag.map((m) => Math.pow(5 - m, 1.6)), wsum = wt.reduce((a, b) => a + b, 0);
+  const lab = ink(1600, 1100, 300, (g, X, Y) => { g.font = '500 17px ' + MONO; g.fillStyle = 'rgb(200,200,200)';
+    g.fillText('U R S A   M A J O R', X(-2.42), Y(-1.62));
+    for (const d of [40, 50, 60]) { const p = sky(7.62, d); if (Math.abs(p[1]) < BY - .1) g.fillText('+' + d + '°', X(-2.47), Y(p[1] + .04)); }
+    for (const h of [9, 11, 13]) { const p = sky(h, 33); g.fillText(h + 'h', X(p[0] - .05), Y(-BY + .08)); }
+    g.font = '500 22px ' + MONO; for (const [k, s] of [['Dubhe', 'α'], ['Alkaid', 'η'], ['Merak', 'β'], ['Phecda', 'γ']]) { const p = at(k); g.fillText(s, X(p[0] + .08), Y(p[1] + .07)); } });
+  const r0 = rng(64), field = Array.from({ length: 240 }, () => [(r0() * 2 - 1) * BX, (r0() * 2 - 1) * BY, .2 + r0() * r0() * .5]);
+  return build(n, 44, [
+    [.42, (r) => { let q = r() * wsum, i = 0; while (i < wt.length - 1 && q > wt[i]) { q -= wt[i]; i++; } const s = .008 + (4.3 - mag[i]) * .0075, d = J(r, s), e = J(r, s); return [P[i][0] + d, P[i][1] + e, 0, 20 + i, mag[i] < 2.5 ? .92 : .75, false]; }],
+    [.04, (r) => { const i = [0, 4, 6][Math.floor(r() * 3)], l = (r() - .5) * .3; return r() < .5 ? [P[i][0] + l, P[i][1] + J(r, .002), 0, 20 + i, .55, false] : [P[i][0] + J(r, .002), P[i][1] + l, 0, 20 + i, .55, false]; }],
+    [.14, (r) => { const [p, , u] = lines(r); return [p[0] + J(r, .003), p[1] + J(r, .003), 0, 0, Math.floor(u * 40) % 2 ? .1 : .36, false]; }],
+    [.14, (r) => { for (let k = 0; k < 9; k++) { const [p] = G(r); if (inBox(p)) return [p[0], p[1], 0, 0, .22, false]; } return [0, 0, 0, 0, 0, false]; }],
+    [.05, (r) => { const p = frame(r()), side = Math.abs(Math.abs(p[0]) - BX) < 1e-3; return [p[0], p[1], 0, 0, .3, false]; }],
+    [.03, (r) => { const k = Math.floor(r() * 40), x = -BX + k * (2 * BX / 39); return r() < .5 ? [x, -BY - r() * (k % 5 ? .03 : .07), 0, 0, .35, false] : [x, BY + r() * (k % 5 ? .03 : .07), 0, 0, .35, false]; }],
+    [.12, (r) => { const f = field[Math.floor(r() * field.length)]; return [f[0] + J(r, .006), f[1] + J(r, .006), 0, 3, f[2], false]; }],
+    [.04, (r) => { const [x, y, R] = lab(r); return [x, y, 0, 0, .25 + .35 * R, false]; }],
+    [.04, (r) => { const q = r(); if (q < .7) { const a = r() * TAU; return [MIZAR[0] + Math.cos(a) * .15, MIZAR[1] + Math.sin(a) * .15, 0, 10, .6, true]; } const k = Math.floor(r() * 4) * Math.PI / 2, d = .17 + r() * .07; return [MIZAR[0] + Math.cos(k) * d, MIZAR[1] + Math.sin(k) * d, 0, 10, .7, true]; }],
+  ], 5.3, 3.65);
+}
+// ---------- 25 galaxy: bulge, two log-spiral arms, disk and halo, one group turning about the disk normal ----------
+function galaxyShape(n) {
+  const arm = (r, rr) => { const a = r() < .5 ? 0 : 1; return a * Math.PI + Math.log(rr / .25) * 3.3 + J(r, .14 + .04 * rr); };
+  return build(n, 45, [
+    [.12, (r) => [J(r, .13), J(r, .13), J(r, .08), 10, .95, false]],
+    [.08, (r) => [J(r, .32), J(r, .32), J(r, .14), 10, .55, false]],
+    [.5, (r) => { const rr = .25 + 1.75 * Math.pow(r(), 1.25), ph = arm(r, rr), w = J(r, .03 + .05 * rr), young = rr > .7 && r() < .03; return [Math.cos(ph) * (rr + w), Math.sin(ph) * (rr + w), J(r, .03), 10, young ? .95 : .28 + .45 * Math.exp(-rr * .7) + .2 * r(), young]; }],
+    [.04, (r) => { const rr = .7 + 1.2 * r(), ph = arm(r, rr), d = onSphere(r), s = .035; return [Math.cos(ph) * rr + d[0] * s, Math.sin(ph) * rr + d[1] * s, d[2] * s, 10, .8, true]; }],
+    [.2, (r) => { const rr = -Math.log(1 - r() * .95) * .6, ph = r() * TAU; return [Math.cos(ph) * rr, Math.sin(ph) * rr, J(r, .05), 10, .16, false]; }],
+    [.06, (r) => { const d = onSphere(r), rr = .5 + r() * 1.6; return [d[0] * rr, d[1] * rr, d[2] * rr * .6, 10, .16, false]; }],
+  ], 4.3, 2.65);
+}
+// ---------- 26 black hole: disk (group 0, Doppler + occlusion in the hook), lensed halo (3) and photon ring (4) in the screen plane ----------
+function blackholeShape(n) {
+  const r0 = rng(13), streaks = Array.from({ length: 900 }, () => [.95 + 1.35 * Math.pow(r0(), 1.7), r0() * TAU, .3 + r0() * .9]);
+  return build(n, 46, [
+    [.6, (r) => { const s = streaks[Math.floor(r() * streaks.length)], ph = s[1] + r() * s[2], rr = s[0] + J(r, .008); return [Math.cos(ph) * rr, J(r, .008 + .01 * (rr - .95)), Math.sin(ph) * rr, 10, .3 + .65 * Math.pow(1 - (s[0] - .95) / 1.35, 1.5), false]; }],
+    [.08, (r) => { const ph = r() * TAU, rr = .95 + Math.pow(r(), 3) * 1.4; return [Math.cos(ph) * rr, J(r, .02), Math.sin(ph) * rr, 10, .2, false]; }],
+    [.3, (r) => { const ph = r() * TAU, up = Math.sin(ph), rr = .685 + (up > 0 ? Math.pow(r(), 1.8) * .42 * (.3 + .7 * up) : Math.pow(r(), 2.4) * .12); return [Math.cos(ph) * rr, Math.sin(ph) * rr, 0, 3, up > 0 ? .5 + .45 * up * (1 - (rr - .685) / .42) : .55, false]; }],
+    [.025, (r) => { const ph = r() * TAU, rr = .66 + J(r, .002); return [Math.cos(ph) * rr, Math.sin(ph) * rr, 0, 4, .75, true]; }],
+  ], 4.75, 2.25);
+}
+// ---------- 27 ringed planet: lit sphere (code 6), rings (group 0), moon (group 1), dotted moon orbit (7) ----------
+const PLANET = { R: .78, moon: nrm([.06, 1, .05]), view: [['x', .42], ['z', -.3]] };
+function planetShape(n) {
+  const R = PLANET.R, [mu, mv] = basis(PLANET.moon), r0 = rng(48), lets = [];
+  for (let k = 0; k < 24; k++) { const q = .99 + k * (1.9 - .99) / 23; if (q > 1.57 && q < 1.67) continue; lets.push([q + (r0() - .5) * .02, q < 1.24 ? .32 : q < 1.58 ? .55 + .4 * r0() : .4 + .3 * r0(), .003 + r0() * .005]); }
+  const bands = [-.95, -.7, -.48, -.28, -.1, .1, .3, .52, .78];
+  return build(n, 47, [
+    [.14, (r) => { const lat = bands[Math.floor(r() * bands.length)] + J(r, .012), lon = r() * TAU; return [Math.cos(lat) * Math.sin(lon) * R, Math.sin(lat) * R, Math.cos(lat) * Math.cos(lon) * R, 6, .8, false]; }],
+    [.44, (r) => { const l = lets[Math.floor(r() * lets.length)], rr = l[0] + J(r, l[2]), ph = r() * TAU; return [Math.cos(ph) * rr, J(r, .004), Math.sin(ph) * rr, 10, l[1] * (.85 + .3 * Math.pow(.5 + .5 * Math.sin(ph * 5 + rr * 13), 6)), false]; }],
+    [.3, (r) => { const d = onSphere(r), lat = Math.asin(d[1]), lon = Math.atan2(d[0], d[2]), band = .42 + .38 * Math.pow(Math.sin(lat * 7 + .4 * Math.sin(lon * 3 + lat * 4)), 2), spot = Math.exp(-((lat + .38) ** 2) * 60 - ((lon - .6) ** 2) * 18); return [d[0] * R, d[1] * R, d[2] * R, 6, Math.min(.98, band + spot * .6), false]; }],
+    [.1, (r) => { const q = r(); let rr, br; if (q < .18) { rr = .98 + r() * .24; br = .26; } else if (q < .7) { rr = 1.25 + r() * .33; br = .72; } else { do { rr = 1.66 + r() * .24; } while (Math.abs(rr - 1.84) < .009); br = .52; }
+      const ph = r() * TAU; br *= .55 * (.72 + .28 * Math.sin(rr * 90) ** 2); return [Math.cos(ph) * rr, J(r, .005), Math.sin(ph) * rr, 10, br, false]; }],
+    [.02, (r) => { const d = onSphere(r), s = .065 * Math.cbrt(r()); return [mu[0] * 2.35 + d[0] * s, mu[1] * 2.35 + d[1] * s, mu[2] * 2.35 + d[2] * s, 11, .9, true]; }],
+    [.04, (r) => { const a = Math.round(r() * 160) / 160 * TAU; return [(mu[0] * Math.cos(a) + mv[0] * Math.sin(a)) * 2.35, (mu[1] * Math.cos(a) + mv[1] * Math.sin(a)) * 2.35, (mu[2] * Math.cos(a) + mv[2] * Math.sin(a)) * 2.35, 7, .16, false]; }],
+  ], 5.6, 2.7);
+}
+// ---------- 28 gear train: three spur gears (groups 0-2) meshing at the right phase and ratio ----------
+const GEARS = (() => {
+  const m = .07, z = [24, 12, 18], r = z.map((k) => m * k / 2), p = z.map((k) => TAU / k);
+  const b12 = 20 * Math.PI / 180, b23 = -40 * Math.PI / 180;
+  const c0 = [-.75, -.05], c1 = [c0[0] + (r[0] + r[1]) * Math.cos(b12), c0[1] + (r[0] + r[1]) * Math.sin(b12)], c2 = [c1[0] + (r[1] + r[2]) * Math.cos(b23), c1[1] + (r[1] + r[2]) * Math.sin(b23)];
+  const ph0 = b12, ph1 = b12 + Math.PI - .5 * p[1];                 // a tooth of gear 0 on the line of centres, a gap of gear 1 facing it
+  const e = (b23 - ph1) / p[1], ef = (e - Math.round(e)) * p[1];    // gear 1's nearest tooth sits at b23 - ef
+  const ph2 = b23 + Math.PI + ef * r[1] / r[2] - .5 * p[2];
+  const w0 = -.22, w = [w0, -w0 * z[0] / z[1], w0 * z[0] / z[2]];
+  const cs = [c0, c1, c2], xs = cs.flatMap((c, i) => [c[0] - r[i] - m, c[0] + r[i] + m]), ys = cs.flatMap((c, i) => [c[1] - r[i] - m, c[1] + r[i] + m]);
+  const ox = (Math.min(...xs) + Math.max(...xs)) / 2, oy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  return { m, z, r, c: cs.map(([x, y]) => [x - ox, y - oy]), ph: [ph0, ph1, ph2], w, W: Math.max(...xs) - Math.min(...xs), H: Math.max(...ys) - Math.min(...ys) };
+})();
+function gearShape(n) {
+  const { m, z, r, c, ph } = GEARS;
+  const outline = (g, zz) => { const pts = [], pa = TAU / z[g], ra = r[g] + m, rf = r[g] - 1.25 * m, hr = .29 * pa, ht = .17 * pa, P = (R, a) => [c[g][0] + Math.cos(a) * R, c[g][1] + Math.sin(a) * R, zz];
+    for (let k = 0; k < z[g]; k++) { const a = ph[g] + k * pa; for (let i = 0; i <= 3; i++) pts.push(P(rf, a - pa / 2 + (pa / 2 - hr) * i / 3)); for (let i = 0; i <= 3; i++) pts.push(P(ra, a - ht + 2 * ht * i / 3)); for (let i = 0; i <= 3; i++) pts.push(P(rf, a + hr + (pa / 2 - hr) * i / 3)); }
+    return poly(pts, true); };
+  const ring = (g, R, zz) => poly(arcPts(c[g][0], c[g][1], R, 0, TAU, Math.max(24, Math.round(R * 160))).map((q) => [q[0], q[1], zz]));
+  const at = (g, R, a) => [c[g][0] + Math.cos(a) * R, c[g][1] + Math.sin(a) * R];
+  const holes = (g, R, hr, k) => Array.from({ length: k }, (_, i) => { const q = at(g, R, ph[g] + i * TAU / k + .2); return poly(arcPts(q[0], q[1], hr, 0, TAU, 40).map((v) => [v[0], v[1], 0])); });
+  const spokes = (g, k) => Array.from({ length: k }, (_, i) => { const a = ph[g] + i * TAU / k, d = .028; return [poly([[...at(g, .13, a - d / .13), 0], [...at(g, .44, a - d / .44), 0]]), poly([[...at(g, .13, a + d / .13), 0], [...at(g, .44, a + d / .44), 0]])]; }).flat();
+  const G = [0, 1, 2].map((g) => ({
+    front: outline(g, 0), back: outline(g, -.1),
+    detail: polys([ring(g, Math.max(.1, r[g] * .21), 0), ring(g, r[g] * .09 + .02, 0), ...(g === 0 ? [ring(0, r[0] - .19, 0), ...holes(0, .42, .13, 5)] : g === 1 ? holes(1, .21, .045, 6) : [ring(2, .44, 0), ...spokes(2, 6)])]),
+  }));
+  const plate = poly(zAt(rrectPts(-GEARS.W / 2 - .12, -GEARS.H / 2 - .12, GEARS.W / 2 + .12, GEARS.H / 2 + .12, .08), -.22));
+  return build(n, 51, [
+    [.34, (r0) => { const q = r0(), k = q < .44 ? 0 : q < .66 ? 1 : 2, p = G[k].front(r0()); return [p[0] + J(r0, .003), p[1] + J(r0, .003), 0, 10 + k, .85, false]; }],
+    [.14, (r0) => { const k = Math.floor(r0() * 3), p = G[k].back(r0()); return [p[0], p[1], p[2], 10 + k, .3, false]; }],
+    [.26, (r0) => { const k = Math.floor(r0() * 3), [p] = G[k].detail(r0); return [p[0] + J(r0, .003), p[1] + J(r0, .003), 0, 10 + k, .65, false]; }],
+    [.12, (r0) => { const k = Math.floor(r0() * 3), a = r0() * TAU, R = Math.sqrt(r0()) * (r[k] - 1.3 * m); return [c[k][0] + Math.cos(a) * R, c[k][1] + Math.sin(a) * R, -.05, 10 + k, .1, false]; }],
+    [.03, (r0) => { const k = Math.floor(r0() * 3), a = r0() * TAU; return [c[k][0] + Math.cos(a) * .035, c[k][1] + Math.sin(a) * .035, .02, 0, .9, k === 1]; }],
+    [.07, (r0) => { const p = plate(r0()); return [p[0], p[1], p[2], 0, .22, false]; }],
+    [.04, (r0) => { const sx = r0() < .5 ? -1 : 1, sy = r0() < .5 ? -1 : 1, a = r0() * TAU; return [sx * (GEARS.W / 2 - .02) + Math.cos(a) * .035, sy * (GEARS.H / 2 - .02) + Math.sin(a) * .035, -.22, 0, .4, false]; }],
+  ], GEARS.W + .5, GEARS.H + .5);
+}
+// ---------- 29 lighthouse: tower (6, back side dimmed), lamp (3), twin beam (group 0), sea (7) ----------
+const LH = { lamp: [0, .62, 0] };
+function lighthouseShape(n) {
+  const rad = (y) => .3 - .12 * (y + 1.15) / 1.6, cyl = (R, y, a) => [Math.cos(a) * R, y, Math.sin(a) * R];
+  const [lx, ly, lz] = LH.lamp, rocks = [[-.42, -1.17, .1], [.38, -1.18, .2], [.1, -1.2, .38], [-.2, -1.19, -.3], [.55, -1.2, -.15]];
+  return build(n, 52, [
+    [.24, (r) => { const y = -1.15 + r() * 1.6, band = Math.floor((y + 1.15) / .4) % 2; return [...cyl(rad(y), y, r() * TAU), 6, band ? .62 : .12, false]; }],
+    [.04, (r) => { const y = -1.15 + Math.floor(r() * 5) * .4; return [...cyl(rad(Math.min(y, .45)), Math.min(y, .45), r() * TAU), 6, .65, false]; }],
+    [.02, (r) => { const q = r(); if (q < .5) return [(r() - .5) * .12, -1.15 + r() * .22, rad(-1.1) + .004, 6, .55, false]; const y = -.5 + Math.floor(r() * 2) * .45; return [(r() - .5) * .06, y + (r() - .5) * .09, rad(y) + .004, 6, .6, false]; }],
+    [.05, (r) => { const q = r(); if (q < .4) return [...cyl(.33, .47, r() * TAU), 6, .6, false]; if (q < .7) return [...cyl(.33, .56, r() * TAU), 6, .5, false]; const a = Math.floor(r() * 14) / 14 * TAU; return [...cyl(.33, .47 + r() * .09, a), 6, .45, false]; }],
+    [.06, (r) => { const q = r(); if (q < .5) { const a = Math.floor(r() * 8) / 8 * TAU; return [...cyl(.17, .49 + r() * .26, a), 6, .5, false]; } return [...cyl(.17, [.49, .62, .75][Math.floor(r() * 3)], r() * TAU), 6, .5, false]; }],
+    [.04, (r) => { const q = r(); if (q < .6) { const a = Math.floor(r() * 8) / 8 * TAU, t = r(); return [...cyl(.21 * (1 - t), .75 + t * .18, a), 6, .55, false]; } if (q < .85) return [...cyl(.21, .75, r() * TAU), 6, .55, false]; const d = onSphere(r); return [d[0] * .025, .96 + d[1] * .025, d[2] * .025, 6, .7, false]; }],
+    [.025, (r) => [lx + J(r, .03), ly + J(r, .03), lz + J(r, .03), 3, .95, false]],
+    [.015, (r) => [lx + J(r, .07), ly + J(r, .06), lz + J(r, .07), 3, .5, true]],
+    [.3, (r) => { const s = .1 + 2.2 * Math.pow(r(), 1.25), dir = r() < .5 ? 1 : -1, sg = (r() < .35 ? .25 : 1) * (.01 + s * .045); return [lx + dir * s, ly + J(r, sg * .6), lz + J(r, sg), 10, .95 * Math.pow(1 - s / 2.45, .9), false]; }],
+    [.18, (r) => { const j = Math.floor(r() * 18); return [-2.5 + r() * 5, -1.18, -1 + j * 2.4 / 17, 7, .4, false]; }],
+    [.035, (r) => { const k = rocks[Math.floor(r() * rocks.length)]; return [k[0] + J(r, .09), k[1] + Math.abs(J(r, .04)), k[2] + J(r, .09), 0, .32, false]; }],
+  ], 5.0, 2.45);
+}
+// ---------- 30 contour map: marching-squares contours stacked by height; route (3) and summit flag ----------
+function topoShape(n) {
+  const H = (x, y) => 1.0 * Math.exp(-((x + .6) ** 2 + (y - .1) ** 2) / (2 * .55 ** 2)) + .72 * Math.exp(-((x - .95) ** 2 + (y + .35) ** 2) / (2 * .42 ** 2)) + .45 * Math.exp(-((x - .2) ** 2 + (y - .75) ** 2) / (2 * .33 ** 2))
+    + .3 * Math.exp(-((x + 1.7) ** 2 + (y + .6) ** 2) / (2 * .5 ** 2)) + .06 * Math.sin(x * 3.1 + y * 2.3) + .04 * Math.sin(x * 5.7 - y * 4.1);
+  const NX = 200, NY = 116, X0 = -2.4, Y0 = -1.4, dx = 4.8 / NX, dy = 2.8 / NY, ZS = .55, g = new Float32Array((NX + 1) * (NY + 1));
+  let pk = [0, 0, -9];
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++) { const x = X0 + i * dx, y = Y0 + j * dy, v = H(x, y); g[j * (NX + 1) + i] = v; if (v > pk[2]) pk = [x, y, v]; }
+  const segs = [], cum = []; let tot = 0;
+  for (let L = 0; L < 16; L++) { const lv = .08 + L * .066;
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const v = [g[j * (NX + 1) + i], g[j * (NX + 1) + i + 1], g[(j + 1) * (NX + 1) + i + 1], g[(j + 1) * (NX + 1) + i]], P = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], hit = [];
+      for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4]; if ((a < lv) !== (b < lv)) { const t = (lv - a) / (b - a), A = P[e], B = P[(e + 1) % 4]; hit.push([X0 + (A[0] + (B[0] - A[0]) * t) * dx, Y0 + (A[1] + (B[1] - A[1]) * t) * dy]); } }
+      for (let k = 0; k + 1 < hit.length; k += 2) { const l = Math.hypot(hit[k + 1][0] - hit[k][0], hit[k + 1][1] - hit[k][1]); tot += l; segs.push([hit[k], hit[k + 1], L, lv]); cum.push(tot); }
+    } }
+  const pickSeg = (r) => { const q = r() * tot; let lo = 0, hi = cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < q) lo = m + 1; else hi = m; } return segs[lo]; };
+  const fade = (x, y) => Math.max(0, Math.min(1, (1 - Math.hypot(x / 2.4, y / 1.4)) / .22));
+  const ctrl = [[2.0, -1.2], [1.55, -.95], [1.25, -1.0], [.85, -.8], [.35, -.62], [.05, -.75], [-.25, -.5], [-.3, -.22], [-.45, -.05], pk.slice(0, 2)];
+  const route = poly(Array.from({ length: 200 }, (_, i) => { const u = i / 199 * (ctrl.length - 1), k = Math.min(ctrl.length - 2, Math.floor(u)), t = u - k, A = ctrl[Math.max(0, k - 1)], B = ctrl[k], C = ctrl[k + 1], D = ctrl[Math.min(ctrl.length - 1, k + 2)];
+    const cr = (a, b, c, d) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t); const x = cr(A[0], B[0], C[0], D[0]), y = cr(A[1], B[1], C[1], D[1]); return [x, y, H(x, y) * ZS + .012]; }));
+  const top = pk[2] * ZS;
+  return build(n, 53, [
+    [.8, (r) => { const s = pickSeg(r), t = r(), x = s[0][0] + (s[1][0] - s[0][0]) * t, y = s[0][1] + (s[1][1] - s[0][1]) * t; return [x, y, s[3] * ZS, 0, (s[2] % 5 === 0 ? .85 : .38) * (.25 + .75 * fade(x, y)), false]; }],
+    [.07, (r) => { const u = r(), p = route(Math.round(u * 110) / 110 + J(r, .0008)); return [p[0], p[1], p[2], 3, .6, true]; }],
+    [.04, (r) => { const q = r(); if (q < .45) return [pk[0] + J(r, .004), pk[1] + J(r, .004), top + r() * .42, 0, .75, false]; const u = r(), v = r() * (1 - u); return [pk[0] + u * .2, pk[1], top + .42 - v * .16 - u * .08, 0, .85, true]; }],
+    [.05, (r) => { const a = r() * TAU, R = .05 + r() * .02; return [pk[0] + Math.cos(a) * R, pk[1] + Math.sin(a) * R, top + .005, 0, .6, false]; }],
+  ], 4.9, 2.4);
+}
+// ---------- 31 flight path: a paper plane (code 4) at the end of a looping dotted path (code 3, arc length in z) ----------
+const PATH = (() => { const v = .5, R = .7, th0 = -.9 * Math.PI, th1 = 1.15 * Math.PI, pts = [];
+  for (let i = 0; i <= 400; i++) { const th = th0 + (th1 - th0) * i / 400; pts.push([v * th - R * Math.sin(th), R * Math.cos(th), 0]); }
+  const end = pts[400], prev = pts[392], ang = Math.atan2(end[1] - prev[1], end[0] - prev[0]), C = [end[0] + Math.cos(ang) * .3, end[1] + Math.sin(ang) * .3, 0];
+  return { f: poly(pts), end, ang, C };
+})();
+function planeShape(n) {
+  const { f, ang, C } = PATH, Nn = [1, 0, 0], T = [-.8, .02, 0], WL = [-.92, .1, .72], WR = [-.92, .1, -.72], K = [-.82, -.3, 0];
+  const tf = (p) => { let q = [p[0] * .36, p[1] * .36, p[2] * .36]; q = rx(q, .6); q = ry(q, -.4); q = rz(q, ang + .05); return [C[0] + q[0], C[1] + q[1], C[2] + q[2]]; };
+  const tris = [[Nn, T, WL], [Nn, T, WR], [Nn, T, K]], edges = [[Nn, WL], [Nn, WR], [Nn, T], [Nn, K], [WL, T], [WR, T]];
+  return build(n, 54, [
+    [.5, (r) => { const s = r(), p = f(s); return [p[0] + J(r, .005), p[1] + J(r, .005), s, 3, .7, false]; }],
+    [.12, (r) => { const e = edges[Math.floor(r() * 6)]; return [...tf(mixp(e[0], e[1], r())), 4, .9, false]; }],
+    [.26, (r) => { const t = tris[Math.floor(r() * 3)]; let u = r(), v = r(); if (u + v > 1) { u = 1 - u; v = 1 - v; } const p = [0, 1, 2].map((k) => t[0][k] + (t[1][k] - t[0][k]) * u + (t[2][k] - t[0][k]) * v); return [...tf(p), 4, .35 + .25 * u, false]; }],
+    [.08, (r) => { const k = Math.floor(r() * 50), x = -1.35 + k * .08; return r() < .7 ? [x + J(r, .003), -.98, 0, 0, .3, false] : [-1.35 + Math.floor(r() * 11) * .4, -.98 + r() * (k % 2 ? .05 : .09), 0, 0, .4, false]; }],
+    [.04, (r) => { const d = onSphere(r), s0 = f(0); return [s0[0] + d[0] * .03, s0[1] + d[1] * .03, 0, 0, .8, true]; }],
+  ], 4.9, 2.1);
+}
+// @@SHAPES@@
+
+/* =====================================================================================================
+   SCENES: key -> { shape, view, groups, motion, fit, bright, size, dust, t0 }
+   fit (optional): aw/ah = area in px the shape fits into, right = gap to the tile's right edge, dx/dy = nudge in local units,
+   max = ppu cap, mh = phone area height, mx/my = phone nudge
+   ===================================================================================================== */
+const SCENES = {
+  cpu: { shape: cpuShape, view: [['x', -.62]], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 19.5) { float s = p.z; p.z = 0.; float h = hash11(c), u = fract(t * (.035 + .03 * h) + h) * 8. - .6, k = bump(s - u, .12);
+        b = 1. - .45 * smoothstep(.4, 2.2, s) + 2.4 * k; a = smoothstep(.3, .8, k); }
+      return p; }` },
+  esp32: { shape: esp32Shape, view: [['z', -.1], ['x', -.85], ['y', .12]], fit: { dx: -.45 }, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3.) b = .12 + 1.4 * smoothstep(-.3, .5, sin(t * 2.4));
+      if (c == 4.) { float f = fract(t * .2 + p.y / 3.), R = .16 + f * 1.05 + p.z, th = p.x;
+        p = vec3(1.26 + cos(th) * R, sin(th) * R, .02); b = pow(sin(PI * f), 1.6) * (1. - .7 * abs(th) / .75); }
+      return p; }` },
+  ram: { shape: ramShape, view: [['x', -.5], ['y', -.42], ['z', .04]], fit: { aw: 640 }, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      float u = mod(t * .5, 6.4) - 3.2, w = bump(p.x - u, .45);
+      if (c == 2.) { b = 1. + 1.4 * w; a = smoothstep(.5, .9, w); }
+      if (c == 3. || c == 6.) b = 1. + 1.2 * w;
+      return p; }` },
+  breadboard: { shape: breadboardShape, view: [['z', .08], ['x', -.82], ['y', .18]], t0: .3, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 19.5 && c < 39.5) { float i = mod(c, 10.), ph = fract(t / 3.2 - i * .25), on = smoothstep(0., .06, ph) * (1. - smoothstep(.2, .3, ph));
+        if (c < 29.5) { b = .5 + 1.1 * on; a = on * .8; } else b = on * 1.2; }
+      return p; }` },
+  rack: { shape: rackShape, view: [['y', -.5], ['x', .14]], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 19.5) { float h = hash11(c), w = .7 + 2.2 * h; b = h < .2 ? 1.1 : .15 + 1.3 * smoothstep(.1, .6, sin(t * w + h * 40.)); }
+      return p; }` },
+  hdd: { shape: hddShape, view: [['z', .06], ['x', -.72]], groups: [{ c: [HDD.c[0], HDD.c[1], 0], a: [0, 0, 1], s: -1.0 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 4.) { vec2 o = vec2(${F(HDD.piv[0])}, ${F(HDD.piv[1])}); float g = .05 + .11 * sin(t * .45) + .04 * sin(t * 1.17 + 1.); p.xy = o + mat2(cos(g), sin(g), -sin(g), cos(g)) * (p.xy - o); }
+      return p; }` },
+  floppy: { shape: floppyShape, view: [['x', -.18], ['z', -.05]], size: SMALL ? 144 : 176, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 2.) { vec2 d = p.xy - vec2(.05, -.02); float th = atan(d.y, d.x), r = length(d);
+        b = .25 + .9 * pow(.5 + .5 * cos(th * 28. - t * 1.1), 6.) * (.6 + .4 * sin(r * 70.)); }
+      p = rotY(p, .3 * sin(t * .21)); p.y += .03 * sin(t * .5);
+      return p; }` },
+  cassette: { shape: cassetteShape, view: [['x', -.22]], size: SMALL ? 144 : 176, bright: .8,
+    groups: [{ c: [CAS.L[0], CAS.L[1], 0], a: [0, 0, 1], s: -.35 }, { c: [CAS.R[0], CAS.R[1], 0], a: [0, 0, 1], s: -.52 }],
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3.) b = .35 + .9 * pow(.5 + .5 * sin(p.x * 30. - t * 6.6), 4.);
+      if (c == 6.) { bool L = p.x < 0.; vec2 d = p.xy - (L ? vec2(${F(CAS.L[0])}, ${F(CAS.L[1])}) : vec2(${F(CAS.R[0])}, ${F(CAS.R[1])})); float th = atan(d.y, d.x) - (L ? -.35 : -.52) * t;
+        b = .5 + .9 * pow(.5 + .5 * sin(th * 9. + length(d) * 40.), 3.); }
+      p = rotY(p, .22 * sin(t * .18)); return p; }` },
+  keys: { shape: keysShape, view: [['z', .06], ['x', -.95]], size: SMALL ? 144 : 176, bright: .8,
+    motion: `float press(float k, float t){ float o = k == 6. ? .5 : (k == 7. ? 1.05 : (k == 11. ? 1.6 : -9.)), x = mod(t, 4.2) - o; return smoothstep(0., .09, x) * (1. - smoothstep(.22, .42, x)); }
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 19.5) { float pr = press(mod(c - 20., 20.), t); p.z -= .085 * pr; b *= 1. + .7 * pr; if (c > 39.5) a = pr; }
+      return p; }` },
+  scope: { shape: scopeShape, view: [['y', .3], ['x', -.08]], size: SMALL ? 144 : 176, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 2. || c == 3.) { float th = p.x, age = mod(t * 1.3 - th, TAU) / TAU, k = exp(-age * 6.);
+        b = (c == 2. ? 1. : .35) * (.45 + 1.3 * k); a = c == 2. ? smoothstep(.75, .98, exp(-age * 40.)) : 0.;
+        return vec3(1.25 * sin(3. * th + t * .16) + p.y, sin(2. * th) + p.z, 0.); }
+      return p; }` },
+  spectrum: { shape: spectrumShape, view: [['x', -.2], ['y', -.28]], bright: .8,
+    motion: `float lev(float i, float t){ float f = i / 23., h = hash11(i * 3.7 + 1.), e = .8 - .42 * f + .15 * exp(-f * 12.);
+        float m = .56 + .19 * sin(t * 1.1 + f * 7.3) + .12 * sin(t * .67 + f * 19.1 + 1.3) + .13 * sin(t * (1.2 + h * 1.3) + h * 6.28);
+        return clamp(e * m * 1.2, .04, .97); }
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c < 1.5) return p;
+      float i = floor((p.x + ${F((SPEC.NB - 1) * SPEC.P / 2)}) / ${F(SPEC.P)} + .5), L = lev(i, t);
+      if (c == 3.) { float pk = L; for (int k = 1; k < 6; k++) pk = max(pk, lev(i, t - float(k) * .3) - float(k) * .035);
+        p.y += ${F(SPEC.Y0 - SPEC.SP / 2)} + pk * ${F(SPEC.SG * SPEC.SP)} + .03; b = 1.2; a = 1.; return p; }
+      float j = floor((p.y - ${F(SPEC.Y0)}) / ${F(SPEC.SP)} + .5), lv = (j + .5) / ${F(SPEC.SG)}, lit = 1. - smoothstep(L - .02, L + .02, lv);
+      b = .025 + 1.05 * lit; a = lit * step(9.5, j);
+      return p; }` },
+  radar: { shape: radarShape, view: [['x', -.42], ['y', .26]], fit: { right: 120 }, groups: [{ c: [0, 0, 0], a: [0, 0, 1], s: -.7 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3. || c == 4.) { float d = mod(atan(p.y, p.x) - (PI * .5 - .7 * t), TAU);
+        if (c == 3.) b = .02 + 1.7 * exp(-d * 2.2); else { b = .03 + 2.4 * exp(-d * 1.15); a = 1.; } }
+      return p; }` },
+  dish: { shape: dishShape, fit: { dx: .15, dy: .1 }, bright: .8,
+    motion: `vec3 aimD(vec3 q){ q = rotY(rotX(q, ${F(DISH.rx)}), ${F(DISH.ry)}); q.y += ${F(DISH.lift)}; return q; }
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3.) { vec3 F0 = aimD(vec3(0., 0., ${F(DISH.f)})), A = aimD(vec3(0., 0., 1.)) - aimD(vec3(0.)); float f = fract(t * .16 + p.y / 3.), R = .18 + f * 1.1 + p.z, u = p.x / TAU - .5, ph = atan(A.y, A.x) + u * 1.3;
+        p = F0 + vec3(cos(ph) * R, sin(ph) * R, 0.); b = pow(sin(PI * f), 1.3) * (1. - 3. * u * u) * 1.25; }
+      if (c == 2. || c == 3.) { vec3 o = vec3(${F(DISH.px)}, 0., ${F(DISH.pz)}); p = o + rotY(p - o, .25 * sin(t * .2)); }
+      return p; }` },
+  mast: { shape: mastShape, view: [['x', .3]], groups: [{ c: [0, 0, 0], a: [0, 1, 0], s: .12 }], fit: { dy: .05 }, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3.) b = .45 + (.5 + .5 * sin(t * 1.6));
+      if (c == 4.) { float f = fract(t * .13 + p.y / 3.), R = .2 + f * 1.55 + p.z; p = vec3(cos(p.x) * R, .9, sin(p.x) * R); b = pow(sin(PI * f), 1.5) * (1. - .5 * f); }
+      return p; }` },
+  wave: { shape: waveShape, view: [['x', .7]], bright: 1.3,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      float d1 = length(p.xz - vec2(-1.1, -.35)), d2 = length(p.xz - vec2(1.15, .5));
+      float h = .19 * (sin(d1 * 5.4 - t * 1.2) / (1. + d1 * .7) + sin(d2 * 5.4 - t * 1.2 + 1.3) / (1. + d2 * .7));
+      p.y = h; float e = length(vec2(p.x / 2.7, p.z / 1.6));
+      b = (.3 + 4.2 * max(h, 0.) + .6 * smoothstep(-.05, .05, h)) * smoothstep(1.02, .78, e); a = smoothstep(.16, .24, h);
+      return p; }` },
+  terminal: { shape: terminalShape, view: [['y', .2], ['x', -.06]], size: SMALL ? 144 : 176, bright: .75,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 2.) b = .06 + 1.15 * smoothstep(-.25, .25, cos(t * PI));
+      return p; }` },
+  qr: { shape: qrShape, view: [['x', -.28], ['y', .1]], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      float ys = 1.15 * sin(t * .55);
+      if (c == 2.) b = 1. + 1.6 * bump(p.y - ys, .07);
+      if (c == 3.) { p.y += ys; b *= 1. - pow(abs(p.x) / 1.42, 4.); }
+      return rotY(p, .3 * sin(t * .2)); }` },
+  rain: { shape: rainShape, view: [['y', .25]], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 99.5) { float col = c - 100., h = hash11(col), v = .2 + .28 * hash11(col + 3.1), C = 5.2, k = floor(p.y / .22), s = mod(t * v + h * C - p.y, C);
+        p.y = 1.35 - s; b = smoothstep(1.35, 1.0, p.y) * smoothstep(-1.35, -1.0, p.y) * (k < .5 ? 1.5 : .95 * exp(-k * .2)); a = k < .5 ? 1. : 0.; }
+      return p; }` },
+  network: { shape: networkShape, view: [['x', .2]], bright: .8,
+    uniforms: () => ({ uNA: { value: NET.packets.map(([i]) => new THREE.Vector3(...NET.nodes[i])) }, uNB: { value: NET.packets.map(([, j]) => new THREE.Vector3(...NET.nodes[j])) } }),
+    motion: `uniform vec3 uNA[18], uNB[18];
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 99.5) { int k = int(c - 99.5); float h = hash11(c), s = fract(t * (.12 + .1 * h) + h); p = mix(uNA[k], uNB[k], s) + p; b = pow(sin(PI * s), .7) * 1.4; }
+      p = rotY(p, t * .1); vec3 v = uView * p; b *= .4 + .6 * smoothstep(-1.2, 1., v.z);
+      return p; }` },
+  globe: { shape: globeShape, view: [['x', .12]], groups: [{ c: [0, 0, 0], a: SAT_N, s: .3 }], bright: .85,
+    uniforms: () => ({ uA: { value: ROUTES.map(([i]) => new THREE.Vector3(...ll(...CITIES[i]))) }, uB: { value: ROUTES.map(([, j]) => new THREE.Vector3(...ll(...CITIES[j]))) } }),
+    motion: `uniform vec3 uA[10], uB[10];
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 6.) return transpose(uView) * p;
+      if (c == 10.) { vec3 v = uView * p; if (v.z < 0. && length(v.xy) < 1.) b *= .12; return p; }
+      if (c == 7.) { int k = int(p.y + .5); vec3 A = uA[k], B = uB[k]; float s = p.x, w = acos(clamp(dot(A, B), -1., 1.));
+        vec3 q = (sin((1. - s) * w) * A + sin(s * w) * B) / sin(w); q *= 1. + (.04 + .26 * w / PI) * sin(PI * s) + p.z;
+        float u = fract(t * .16 + hash11(float(k) * 7.1)) * 1.5 - .25, pk = bump(s - u, .035); b = .3 + 2.4 * pk; a = smoothstep(.35, .8, pk); p = q; }
+      p = rotZ(rotY(p, .35 + t * .1), .3);
+      vec3 v = uView * p; b *= .1 + .9 * smoothstep(-.3, .35, v.z);
+      return p; }` },
+  atom: { shape: atomShape, bright: .8,
+    groups: [{ c: [0, 0, 0], a: ATOM[0], s: .9 }, { c: [0, 0, 0], a: ATOM[1], s: .75 }, { c: [0, 0, 0], a: ATOM[2], s: 1.05 }, { c: [0, 0, 0], a: [1, 1, 0], s: .3 }] },
+  dna: { shape: dnaShape, view: [['z', .2], ['y', -.35], ['x', .1]], groups: [{ c: [0, 0, 0], a: [1, 0, 0], s: .4 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){ b *= smoothstep(2.25, 1.6, abs(p.x)); return p; }` },
+  knot: { shape: knotShape, bright: .75,
+    motion: `vec3 kc(float u){ float r = 1. + .42 * cos(7. * u); return vec3(r * cos(3. * u), r * sin(3. * u), .42 * sin(7. * u)) * .92; }
+      vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      float u = p.x, v = p.y; vec3 C = kc(u), T = normalize(kc(u + .002) - kc(u - .002)), N = normalize(cross(T, vec3(0., 0., 1.))), B = cross(T, N);
+      vec3 q = C + (N * cos(v) + B * sin(v)) * p.z;
+      float uh = t * .22, d1 = abs(mod(u - uh + PI, TAU) - PI), d2 = abs(mod(u - uh, TAU) - PI), k = bump(d1, .12) + bump(d2, .12);
+      b = .75 + .35 * abs(sin(v)) + 2.2 * k; a = smoothstep(.4, .9, k);
+      return rotX(rotZ(q, t * .12), .62); }` },
+  constellation: { shape: constellationShape, size: SMALL ? 144 : 176, view: [['x', -.08]], groups: [{ c: MIZAR, a: [0, 0, 1], s: .35 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c > 19.5) { float h = hash11(c); b *= 1. + .28 * sin(t * (.6 + 1.1 * h) + h * 40.); }
+      if (c == 3.) { float h = hash11(p.x * 91.7 + p.y * 13.1); b *= .75 + .5 * (.5 + .5 * sin(t * (.4 + h) + h * 60.)); }
+      return p; }` },
+  galaxy: { shape: galaxyShape, view: [['z', .4], ['x', -1.08], ['z', .32]], groups: [{ c: [0, 0, 0], a: [0, 0, 1], s: .06 }], bright: .8 },
+  blackhole: { shape: blackholeShape, view: [['x', .085]], groups: [{ c: [0, 0, 0], a: [0, 1, 0], s: .22 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3. || c == 4.) { if (c == 3.) { float ph = atan(p.y, p.x), r = length(p.xy); b *= .55 + .9 * pow(.5 + .5 * sin(ph * 7. - t * .5 + r * 18.), 2.); } return transpose(uView) * p; }
+      if (c == 10.) { vec3 v = uView * p; b *= 1. - .5 * v.x / 2.3; if (v.z < 0. && length(v.xy) < .67) b = 0.; }
+      return p; }` },
+  planet: { shape: planetShape, view: PLANET.view, size: SMALL ? 144 : 176, groups: [{ c: [0, 0, 0], a: [0, 1, 0], s: .1 }, { c: [0, 0, 0], a: PLANET.moon, s: .25 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 6.) { p = rotY(p, t * .18); vec3 n = normalize(uView * p); b *= (.14 + 1.45 * max(0., dot(n, normalize(vec3(-.55, .45, .7))))) * smoothstep(-.12, .12, n.z); return p; }
+      vec3 v = uView * p; if (v.z < 0. && length(v.xy) < ${F(PLANET.R)}) b = 0.;
+      return p; }` },
+  gears: { shape: gearShape, view: [['x', -.32], ['y', .34]], groups: GEARS.c.map((c, i) => ({ c: [c[0], c[1], 0], a: [0, 0, 1], s: GEARS.w[i] })), bright: .8 },
+  lighthouse: { shape: lighthouseShape, view: [['x', .12]], groups: [{ c: LH.lamp, a: [0, 1, 0], s: .5 }], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 6.) b *= .3 + .7 * smoothstep(-.25, .2, p.z / (length(p.xz) + .001));
+      if (c == 7.) { p.y += .022 * sin(p.x * 5. + p.z * 3. + t * .8) + .012 * sin(p.x * 11. - t * 1.1); b *= smoothstep(1., .55, length(vec2(p.x / 2.5, (p.z - .2) / 1.25))); }
+      if (c == 3.) { vec3 d = uView * rotY(vec3(1., 0., 0.), t * .5); b *= 1. + 1.4 * pow(abs(d.z), 6.); }
+      return p; }` },
+  topo: { shape: topoShape, view: [['x', -.95]], bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 0.) { float zh = mod(t * .05, .7) - .02; b *= 1. + 1.1 * bump(p.z - zh, .02); }
+      if (c == 3.) b *= .55 + .6 * (.5 + .5 * sin(t * 1.2 - p.x * 4.));
+      return rotZ(p, .2 * sin(t * .15)); }` },
+  plane: { shape: planeShape, view: [['y', -.25], ['x', -.06]], fit: { dx: -1.05 }, bright: .8,
+    motion: `vec3 motion(vec3 p, float c, float t, inout float b, inout float a){
+      if (c == 3.) { float s = p.z, d = fract(s * 64. - t * .9); p.z = 0.; b = (.12 + .88 * s) * (.2 + .9 * smoothstep(.25, .4, d) * (1. - smoothstep(.7, .85, d))); }
+      if (c == 4.) { vec3 C = vec3(${F(PATH.C[0])}, ${F(PATH.C[1])}, 0.), q = p - C, fw = vec3(${F(Math.cos(PATH.ang))}, ${F(Math.sin(PATH.ang))}, 0.);
+        q = rotA(q, fw, .12 * sin(t * .8)); q = rotZ(q, .05 * sin(t * .6)); p = C + q + vec3(0., .045 * sin(t * .7), 0.); }
+      return p; }` },
+// @@SCENES@@
+};
+
+/* =====================================================================================================
+   GALLERY: lazy mount / dispose so no more than CAP WebGL contexts exist at once
+   ===================================================================================================== */
+const ACCENT = '#4a63ff', CAP = 5;
+const PHONE = matchMedia('(max-width: 900px)');
+function place(W, H, mob, sh, fit = {}) {
+  if (mob) { const ah = fit.mh || 270, aw = W - 36, ppu = Math.min(aw / sh.w, ah / sh.h); return { ppu, cx: W / 2 + (fit.mx ?? fit.dx ?? 0) * ppu, cy: H - 22 - ah / 2 + (fit.my ?? fit.dy ?? 0) * ppu }; }
+  const aw = Math.min(fit.aw || 600, W - 520), ah = (fit.ah || H - 64), ppu = Math.min(aw / sh.w, ah / sh.h, fit.max || 1e9);
+  return { ppu, cx: W - (fit.right ?? 70) - sh.w * ppu / 2 + (fit.dx || 0) * ppu, cy: H / 2 + (fit.dy || 0) * ppu };
+}
+const tiles = [...document.querySelectorAll('.tile[data-k]')].map((el) => ({ el, k: el.dataset.k, h: null, busy: false, near: false, lost: 0, off: false, cache: null }));
+if (!HAS_GL) { tiles.forEach((t) => { t.off = true; t.el.classList.add('no-gl'); }); document.getElementById('live').textContent = 'off'; }
+function mountTile(t) {
+  const s = SCENES[t.k];
+  return mountStars(t.el, {
+    size: s.size || (SMALL ? 128 : 160), dust: s.dust ?? .07, bright: s.bright ?? .8, accent: ACCENT,
+    view: s.view, groups: s.groups, motion: s.motion, uniforms: s.uniforms && s.uniforms(), t0: s.t0,
+    mobile: () => PHONE.matches,
+    shape: async (n) => { if (!t.cache || t.cache.n !== n) t.cache = { n, sh: await s.shape(n) }; return t.cache.sh; },
+    place: (W, H, mob, sh) => place(W, H, mob, sh, s.fit),
+    onLost: () => { t.h = null; t.lost++; if (t.lost >= 3) { t.off = true; t.el.classList.add('no-gl'); } else setTimeout(schedule, 1500); },
+  });
+}
+let running = false, again = false;
+async function schedule() {
+  if (running) { again = true; return; }
+  running = true;
+  do { again = false; await pass(); } while (again);
+  running = false;
+}
+async function pass() {
+  const mid = innerHeight / 2;
+  const want = tiles.filter((t) => t.near && !t.off && SCENES[t.k])
+    .map((t) => { const r = t.el.getBoundingClientRect(); return { t, d: Math.abs((r.top + r.bottom) / 2 - mid) }; })
+    .sort((a, b) => a.d - b.d).slice(0, CAP).map((o) => o.t);
+  for (const t of tiles) if (t.h && !want.includes(t)) { t.h.dispose(); t.h = null; }
+  for (const t of want) {
+    if (t.h || t.busy) continue;
+    if (tiles.filter((x) => x.h || x.busy).length >= CAP) break;
+    t.busy = true;
+    let h = null;
+    try { h = await mountTile(t); } catch (e) { console.warn(e); }
+    t.busy = false; t.h = h;
+    if (!h && !t.h) { t.off = true; t.el.classList.add('no-gl'); }
+    again = true;   // the page may have scrolled while this one mounted: re-check before the next
+  }
+}
+const nearIO = new IntersectionObserver((es) => { for (const e of es) { const t = tiles.find((x) => x.el === e.target); if (t) t.near = e.isIntersecting; } schedule(); }, { rootMargin: '300px 0px' });
+tiles.forEach((t) => { if (!SCENES[t.k]) t.el.classList.add('no-gl'); nearIO.observe(t.el); });
+let sTick = 0;
+addEventListener('scroll', () => { if (sTick || tiles.filter((t) => t.near).length <= CAP) return; sTick = requestAnimationFrame(() => { sTick = 0; schedule(); }); }, { passive: true });
+window.__starsInfo = () => ({ live: GL.live, max: GL.max, mounted: tiles.filter((t) => t.h).map((t) => t.k), gl: HAS_GL, reduced: RM });
+</script>
+</body>
+</html>
